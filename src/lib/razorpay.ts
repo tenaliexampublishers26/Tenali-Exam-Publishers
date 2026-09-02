@@ -1,28 +1,34 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 
-const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-if (!keyId || !keySecret) {
-  console.warn('⚠️ Razorpay API keys are not configured. Set NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env');
-}
-
-// Razorpay server-side instance (reused across requests in dev)
 const globalForRazorpay = globalThis as unknown as {
   razorpay: Razorpay | undefined;
 };
 
-export const razorpay =
-  globalForRazorpay.razorpay ??
-  new Razorpay({
-    key_id: keyId || '',
-    key_secret: keySecret || '',
-  });
+function getRazorpayInstance(): Razorpay {
+  if (!globalForRazorpay.razorpay) {
+    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'dummy_key_id';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'dummy_key_secret';
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForRazorpay.razorpay = razorpay;
+    globalForRazorpay.razorpay = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    });
+  }
+  return globalForRazorpay.razorpay;
 }
+
+// Lazy Proxy: only accesses the Razorpay client when called at runtime, preventing build-time evaluation crash
+export const razorpay = new Proxy({} as Razorpay, {
+  get(_target, prop) {
+    const instance = getRazorpayInstance();
+    const value = (instance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
 
 /**
  * Verify a Razorpay webhook/checkout signature using HMAC-SHA256.
@@ -36,9 +42,14 @@ export function verifyRazorpaySignature(
   razorpayPaymentId: string,
   razorpaySignature: string
 ): boolean {
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+  if (!keySecret) {
+    console.warn('RAZORPAY_KEY_SECRET is not configured for signature verification.');
+    return false;
+  }
   const body = `${razorpayOrderId}|${razorpayPaymentId}`;
   const expectedSignature = crypto
-    .createHmac('sha256', keySecret || '')
+    .createHmac('sha256', keySecret)
     .update(body)
     .digest('hex');
   return expectedSignature === razorpaySignature;
