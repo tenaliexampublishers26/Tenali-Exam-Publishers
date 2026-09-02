@@ -1,7 +1,7 @@
 import { Product } from '@/types';
 import { COMPANY_ADDRESS, SUPPORT_EMAIL, COMPANY_PHONE } from './data';
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tenaliexampublishers.com';
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tenaliexampublishers.com';
 export const SITE_NAME = 'Tenali Exam Publishers';
 export const SITE_TAGLINE = 'Departmental Exam Preparation Guides & LDCE Books for India Post';
 
