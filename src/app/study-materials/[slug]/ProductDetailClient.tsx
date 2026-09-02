@@ -31,7 +31,6 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
   const [langError, setLangError] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
-  const [addedToCartSuccess, setAddedToCartSuccess] = useState(false);
   const galleryRef = useRef<HTMLDivElement | null>(null);
   const mediumSectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -118,7 +117,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
 
   const productLangs = getProductLanguages();
 
-  const handleAddToCart = () => {
+  const handleCheckout = () => {
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -126,9 +125,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     }
     setLangError(false);
     addItem(product, selectedLang, quantity);
-    setAddedToCartSuccess(true);
-    setTimeout(() => setAddedToCartSuccess(false), 3000);
-    toast.success(`${product.name} added to cart`);
+    router.push('/checkout');
   };
 
   const handleBuyNow = () => {
@@ -139,7 +136,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     }
     setLangError(false);
     addItem(product, selectedLang, quantity);
-    router.push('/cart');
+    router.push('/checkout');
   };
 
   const handleWishlist = () => {
@@ -385,15 +382,10 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
             {/* Actions */}
             <div className={styles.actionRow}>
               <button
-                onClick={handleAddToCart}
+                onClick={handleCheckout}
                 className={`btn btn-primary btn-lg ${styles.actionBtn}`}
-                style={{
-                  background: addedToCartSuccess ? '#10b981' : undefined,
-                  borderColor: addedToCartSuccess ? '#10b981' : undefined,
-                  transition: 'all 0.2s ease',
-                }}
               >
-                {addedToCartSuccess ? '✓ Added to Cart!' : 'Add to Cart'}
+                Checkout
               </button>
               <button onClick={handleBuyNow} className={`btn btn-accent btn-lg ${styles.actionBtn}`}>
                 Buy Now
@@ -462,16 +454,10 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
 
         <div className={styles.stickyActions}>
           <button
-            onClick={handleAddToCart}
+            onClick={handleCheckout}
             className={`btn btn-secondary ${styles.stickyCartBtn}`}
-            style={{
-              background: addedToCartSuccess ? '#10b981' : undefined,
-              color: addedToCartSuccess ? '#ffffff' : undefined,
-              borderColor: addedToCartSuccess ? '#10b981' : undefined,
-              transition: 'all 0.2s ease',
-            }}
           >
-            {addedToCartSuccess ? '✓ Added!' : '+ Cart'}
+            Checkout
           </button>
           <button onClick={handleBuyNow} className={`btn btn-accent ${styles.stickyBuyBtn}`}>
             Buy Now
