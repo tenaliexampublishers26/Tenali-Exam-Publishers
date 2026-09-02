@@ -1,5 +1,5 @@
 # 🚀 Complete SEO Audit & Optimization Report (10/10 Score)
-**Target Website:** Tenali Exam Publishers (`https://tenaliexampublishers.com`)  
+**Target Website:** Tenali Exam Publishers (`https://www.tenaliexampublishers.com`)  
 **Niche:** India Post LDCE Departmental Examination Books & Study Materials  
 **Date of Audit & Implementation:** September 2026  
 **Auditor:** Senior SEO Optimization Specialist (60+ Years Experience Persona)  
