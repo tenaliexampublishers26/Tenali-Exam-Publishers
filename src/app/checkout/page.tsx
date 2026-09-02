@@ -27,7 +27,63 @@ import {
   ShoppingBag
 } from 'lucide-react';
 
+// ─── Razorpay Types ──────────────────────────────────────────────────────────
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  image?: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  handler: (response: RazorpayPaymentResponse) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+interface RazorpayPaymentResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, callback: () => void) => void;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const STEPS = ['Delivery Address', 'Order Review'];
+
+/** Dynamically load the Razorpay checkout.js script */
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if (window.Razorpay) return resolve(true);
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -159,73 +215,160 @@ export default function CheckoutPage() {
     if (validateAddress()) setStep(1);
   };
 
+  // ─── Razorpay Payment Flow ─────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
     setLoading(true);
-    let finalOrderId = generateOrderId();
 
     try {
-      // 1. Save directly to Neon Database
-      const res = await fetch('/api/orders/create', {
+      // 1. Load Razorpay checkout.js script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded || !window.Razorpay) {
+        toast.error('Payment gateway failed to load. Please check your internet connection and try again.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Create a Razorpay order on the server
+      const orderRes = await fetch('/api/payment/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user?.id || null,
-          items,
-          subtotal,
-          deliveryCharge: DELIVERY_CHARGE,
-          total,
-          deliveryAddress: address,
+          amount: total,
+          currency: 'INR',
+          receipt: `tep_${Date.now()}`,
         }),
       });
-      const data = await res.json();
-      if (data?.success && data.orderId) {
-        finalOrderId = data.orderId;
+
+      const orderData = await orderRes.json();
+      if (!orderData.success || !orderData.orderId) {
+        toast.error('Could not initiate payment. Please try again.');
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      console.warn('Could not post to Neon DB API, fallback to local storage:', err);
+
+      // 3. Open Razorpay checkout modal
+      const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+
+      const options: RazorpayOptions = {
+        key: razorpayKeyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Tenali Exam Publishers',
+        description: `Order for ${items.length} item(s)`,
+        order_id: orderData.orderId,
+        image: '/images/logo.png',
+        prefill: {
+          name: address.fullName || user?.name || '',
+          email: address.email || user?.email || '',
+          contact: address.mobile || user?.phone || '',
+        },
+        theme: {
+          color: '#1a2b4c',
+        },
+
+        // 4. Handle successful payment
+        handler: async (response: RazorpayPaymentResponse) => {
+          try {
+            // Verify payment signature and create order in database
+            const verifyRes = await fetch('/api/payment/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                userId: user?.id || null,
+                items,
+                subtotal,
+                deliveryCharge: DELIVERY_CHARGE,
+                total,
+                deliveryAddress: address,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+
+            if (!verifyData.success) {
+              toast.error('Payment verification failed. Please contact support with your payment ID: ' + response.razorpay_payment_id);
+              setLoading(false);
+              return;
+            }
+
+            const finalOrderId = verifyData.orderId;
+
+            // Local cache fallback for orders page
+            const newOrder: Order = {
+              id: finalOrderId,
+              orderNumber: finalOrderId,
+              items: items.map(item => ({
+                productId: item.productId,
+                productName: item.productName,
+                productSlug: item.productSlug,
+                productImage: item.productImage,
+                price: item.price,
+                language: item.language,
+                quantity: item.quantity,
+                bundleTitle: item.bundleTitle,
+                booksIncluded: item.booksIncluded,
+              })),
+              subtotal,
+              deliveryCharge: DELIVERY_CHARGE,
+              total,
+              deliveryAddress: address,
+              status: 'placed',
+              paymentStatus: 'paid',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+
+            try {
+              const existing = localStorage.getItem('tep_orders');
+              const ordersList: Order[] = existing ? JSON.parse(existing) : [];
+              ordersList.unshift(newOrder);
+              localStorage.setItem('tep_orders', JSON.stringify(ordersList));
+            } catch {}
+
+            clearCart();
+
+            if (user?.id) {
+              invalidateCache(`/api/user/addresses?userId=${user.id}`);
+              invalidateCache(`/api/user/orders?userId=${user.id}`);
+              invalidateCache('/api/admin');
+            }
+
+            toast.success('Payment successful! Order placed.');
+            router.push(`/order-confirmation/${finalOrderId}`);
+          } catch (err) {
+            console.error('Error verifying payment:', err);
+            toast.error('An error occurred after payment. Please contact support.');
+            setLoading(false);
+          }
+        },
+
+        modal: {
+          ondismiss: () => {
+            toast.info('Payment was cancelled. Your cart is still saved.');
+            setLoading(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      // Handle payment failure inside the modal
+      rzp.on('payment.failed', () => {
+        toast.error('Payment failed. Please try again or use a different payment method.');
+        setLoading(false);
+      });
+
+      rzp.open();
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      toast.error('Something went wrong during checkout. Please try again.');
+      setLoading(false);
     }
-
-    // 2. Local cache fallback
-    const newOrder: Order = {
-      id: finalOrderId,
-      orderNumber: finalOrderId,
-      items: items.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        productSlug: item.productSlug,
-        productImage: item.productImage,
-        price: item.price,
-        language: item.language,
-        quantity: item.quantity,
-        bundleTitle: item.bundleTitle,
-        booksIncluded: item.booksIncluded,
-      })),
-      subtotal,
-      deliveryCharge: DELIVERY_CHARGE,
-      total,
-      deliveryAddress: address,
-      status: 'placed',
-      paymentStatus: 'paid',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    try {
-      const existing = localStorage.getItem('tep_orders');
-      const ordersList: Order[] = existing ? JSON.parse(existing) : [];
-      ordersList.unshift(newOrder);
-      localStorage.setItem('tep_orders', JSON.stringify(ordersList));
-    } catch {}
-
-    clearCart();
-    if (user?.id) {
-      invalidateCache(`/api/user/addresses?userId=${user.id}`);
-      invalidateCache(`/api/user/orders?userId=${user.id}`);
-      invalidateCache('/api/admin');
-    }
-    toast.success('Order placed successfully!');
-    router.push(`/order-confirmation/${finalOrderId}`);
   };
+  // ──────────────────────────────────────────────────────────────────────────
 
   const handleAddressChange = (field: keyof Address, value: string) => {
     setAddress(prev => ({ ...prev, [field]: value }));
@@ -475,6 +618,24 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              {/* Payment trust badge */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '8px', 
+                marginTop: '16px', 
+                padding: '10px 16px',
+                background: 'var(--color-bg-page)',
+                borderRadius: '10px',
+                border: '1px solid var(--color-border-light)',
+                fontSize: '0.78rem',
+                color: 'var(--color-text-muted)',
+              }}>
+                <Lock size={13} />
+                <span>100% Secure Payment via Razorpay · UPI, Cards, NetBanking accepted</span>
+              </div>
+
               <div className={styles.reviewActions}>
                 <button onClick={() => setStep(0)} className={`btn btn-secondary btn-lg ${styles.backBtn}`}>
                   <ArrowLeft size={18} style={{ marginRight: '8px' }} />
@@ -482,7 +643,7 @@ export default function CheckoutPage() {
                 </button>
                 <button onClick={handlePlaceOrder} disabled={loading} className={`btn btn-primary btn-lg ${styles.payBtn}`}>
                   {loading ? (
-                    'Processing Order...'
+                    'Opening Payment...'
                   ) : (
                     <>
                       <CreditCard size={18} style={{ marginRight: '8px' }} />

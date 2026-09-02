@@ -67,6 +67,8 @@ CREATE TABLE IF NOT EXISTS orders (
     delivery_address JSONB NOT NULL, -- Snapshot of address at time of order
     status VARCHAR(50) DEFAULT 'placed', -- placed, processing, packed, dispatched, out_for_delivery, delivered
     payment_status VARCHAR(50) DEFAULT 'pending', -- pending, paid, failed, cancelled, refunded
+    payment_id VARCHAR(100), -- Razorpay payment ID (e.g. pay_XXXX)
+    razorpay_order_id VARCHAR(100), -- Razorpay order ID (e.g. order_XXXX)
     tracking_number VARCHAR(100),
     carrier VARCHAR(100),
     notes TEXT,
