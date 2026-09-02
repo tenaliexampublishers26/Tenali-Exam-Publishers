@@ -54,6 +54,7 @@ export default function AccountLayout({ children }: { children: ReactNode }): Re
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-sm'
@@ -120,6 +121,7 @@ export default function AccountLayout({ children }: { children: ReactNode }): Re
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     style={{
                       display: 'flex', 
                       alignItems: 'center', 

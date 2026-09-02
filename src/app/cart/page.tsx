@@ -21,6 +21,23 @@ export default function CartPage() {
     toast.info(`${name} removed from cart`);
   };
 
+  const handleBack = () => {
+    if (typeof window !== 'undefined') {
+      const referrer = document.referrer;
+      // If referrer is checkout or cart, go to home
+      if (referrer && (referrer.includes('/checkout') || referrer.includes('/cart'))) {
+        router.push('/');
+        return;
+      }
+      // If there is browser history from this domain, go back
+      if (window.history.length > 1 && referrer && referrer.includes(window.location.host)) {
+        router.back();
+        return;
+      }
+    }
+    router.push('/');
+  };
+
   const handleProceedToCheckout = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -34,9 +51,13 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 20px', position: 'relative' }}>
-        <Link href="/" style={{ position: 'absolute', left: '20px', top: '24px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>
-          <ArrowLeft size={16} /> Home
-        </Link>
+        <button 
+          onClick={handleBack} 
+          style={{ position: 'absolute', left: '20px', top: '24px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          aria-label="Go back"
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
         <div style={{
           width: '72px',
           height: '72px',
@@ -64,9 +85,13 @@ export default function CartPage() {
   return (
     <div className={styles.cartContainer}>
       <div className="page-header" style={{ position: 'relative' }}>
-        <Link href="/study-materials" style={{ position: 'absolute', left: '20px', top: '24px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>
+        <button 
+          onClick={handleBack} 
+          style={{ position: 'absolute', left: '20px', top: '24px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          aria-label="Go back"
+        >
           <ArrowLeft size={16} /> Back
-        </Link>
+        </button>
         <h1 className="page-title">Shopping Cart</h1>
         <p className="page-subtitle">{totalItems} {totalItems === 1 ? 'item' : 'items'} in your cart</p>
       </div>

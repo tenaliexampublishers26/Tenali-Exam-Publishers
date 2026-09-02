@@ -107,8 +107,8 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
   const firstLetter = user.name ? user.name.charAt(0).toUpperCase() : 'A';
 
   return (
-    <div className={`flex min-h-dvh w-full ${isDark ? 'dark' : ''}`}>
-      <div className="flex w-full bg-(--color-bg-page) text-(--color-text-primary)">
+    <div className={`flex h-screen h-dvh max-h-dvh w-full overflow-hidden ${isDark ? 'dark' : ''}`}>
+      <div className="flex w-full h-full overflow-hidden bg-(--color-bg-page) text-(--color-text-primary)">
         
         {/* Mobile Sidebar Backdrop Overlay */}
         {mobileOpen && (
@@ -118,13 +118,14 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
           />
         )}
 
-        <nav
-          className={`fixed md:sticky top-0 h-dvh shrink-0 border-r transition-all duration-300 ease-in-out z-50 border-(--color-border) bg-(--color-bg-card) p-3 shadow-sm flex flex-col overflow-y-auto ${
-            mobileOpen ? 'w-64' : (open ? 'w-64' : 'w-20')
+        {/* Locked Admin Sidebar */}
+        <aside
+          className={`fixed md:relative top-0 left-0 h-full max-h-dvh shrink-0 border-r transition-all duration-300 ease-in-out z-40 border-(--color-border) bg-(--color-bg-card) p-3 shadow-sm flex flex-col overscroll-contain select-none ${
+            mobileOpen ? 'w-64 translate-x-0' : (open ? 'w-64' : 'w-20')
           } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
         >
           {/* Logo & Profile section */}
-          <div className="mb-6 border-b border-(--color-border) pb-4">
+          <div className="mb-6 border-b border-(--color-border) pb-4 shrink-0">
             <div className="flex items-center justify-between rounded-2xl p-2 hover:bg-(--color-bg-hover) transition-all">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="grid size-10 shrink-0 place-content-center rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/20 text-white">
@@ -154,8 +155,8 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
             </div>
           </div>
 
-          {/* Navigation Options */}
-          <div className="space-y-1.5 flex-1">
+          {/* Navigation Options (Independent scroll if needed, with scroll lock to prevent parent page movement) */}
+          <div className="space-y-1.5 flex-1 overflow-y-auto overscroll-contain pr-0.5">
             {MENU.map(item => {
               const isSelected = pathname === item.href;
               const isOpenState = open || mobileOpen;
@@ -163,17 +164,18 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className={`relative flex h-11 w-full items-center rounded-xl transition-all duration-200 ${
                     isSelected 
                       ? "bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 font-bold" 
                       : "text-(--color-text-secondary) hover:bg-(--color-bg-hover) hover:text-(--color-text-primary)"
                   }`}
                 >
-                  <div className={`grid h-full w-14 place-content-center ${isSelected ? 'text-white' : 'text-(--color-text-secondary)'}`}>
+                  <div className={`grid h-full w-14 place-content-center shrink-0 ${isSelected ? 'text-white' : 'text-(--color-text-secondary)'}`}>
                     {item.icon}
                   </div>
                   {isOpenState && (
-                    <span className="text-sm font-semibold transition-opacity duration-200 opacity-100">
+                    <span className="text-sm font-semibold transition-opacity duration-200 opacity-100 truncate">
                       {item.label}
                     </span>
                   )}
@@ -183,18 +185,18 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
           </div>
 
           {/* Footer Controls (Theme & Logout) */}
-          <div className="border-t border-(--color-border) pt-4 space-y-1.5 mb-14">
+          <div className="border-t border-(--color-border) pt-4 space-y-1.5 mb-12 shrink-0">
             
             {/* Store Front Link */}
             <Link
               href="/"
               className="flex h-11 w-full items-center rounded-xl text-(--color-text-secondary) hover:bg-(--color-bg-hover) hover:text-(--color-text-primary) transition-colors"
             >
-              <div className="grid h-full w-14 place-content-center text-(--color-text-secondary)">
+              <div className="grid h-full w-14 place-content-center shrink-0 text-(--color-text-secondary)">
                 <Home size={18} />
               </div>
               {(open || mobileOpen) && (
-                <span className="text-sm font-semibold">
+                <span className="text-sm font-semibold truncate">
                   Main Store
                 </span>
               )}
@@ -205,10 +207,10 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
               onClick={logout}
               className="flex h-11 w-full items-center rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-500 transition-colors"
             >
-              <div className="grid h-full w-14 place-content-center text-rose-500">
+              <div className="grid h-full w-14 place-content-center shrink-0 text-rose-500">
                 <LogOut size={18} />
               </div>
-              {(open || mobileOpen) && <span className="text-sm font-bold">Logout</span>}
+              {(open || mobileOpen) && <span className="text-sm font-bold truncate">Logout</span>}
             </button>
           </div>
 
@@ -232,14 +234,14 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
               )}
             </div>
           </button>
-        </nav>
+        </aside>
 
-        {/* Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-(--color-bg-page) text-(--color-text-primary)">
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col h-full min-h-0 min-w-0 overflow-hidden bg-(--color-bg-page) text-(--color-text-primary)">
           
           {/* Top Admin Navbar */}
-          <header className="h-16 border-b border-(--color-border) bg-(--color-bg-card) px-4 md:px-8 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
+          <header className="h-16 border-b border-(--color-border) bg-(--color-bg-card) px-4 md:px-8 flex items-center justify-between shrink-0 z-30">
+            <div className="flex items-center gap-3 min-w-0">
               {/* Mobile hamburger menu toggle */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
@@ -249,25 +251,27 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
                 <Menu size={22} />
               </button>
 
-              <h1 className="text-lg font-medium tracking-tight text-(--color-text-primary) mr-2 hidden md:block">
+              <h1 className="text-lg font-medium tracking-tight text-(--color-text-primary) mr-2 hidden md:block truncate">
                 {pathname === '/admin' ? 'TENALI EXAMS PUBLISHERS' : 
                  pathname.startsWith('/admin/orders') ? 'Orders Management' :
                  pathname.startsWith('/admin/products') ? 'Products Management' :
-                 pathname.startsWith('/admin/profile') ? 'Admin Profile' : 'Admin Panel'}
+                 pathname.startsWith('/admin/profile') ? 'Admin Profile' :
+                 pathname.startsWith('/admin/users') ? 'Users Management' :
+                 pathname.startsWith('/admin/settings') ? 'System Settings' : 'Admin Panel'}
               </h1>
 
-              <div className="h-4 w-px bg-(--color-border) hidden md:block mr-2" />
+              <div className="h-4 w-px bg-(--color-border) hidden md:block mr-2 shrink-0" />
 
-              <span className="text-xs font-extrabold uppercase tracking-wider text-(--color-text-muted) hidden sm:inline-block">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-(--color-text-muted) hidden sm:inline-block shrink-0">
                 System Status:
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-bold text-(--color-success) bg-(--color-success-bg) rounded-full">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-bold text-(--color-success) bg-(--color-success-bg) rounded-full shrink-0">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Operational
               </span>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 shrink-0">
               <div className="flex items-center gap-2">
                 <Sun size={14} className={isDark ? "text-slate-400" : "text-amber-500"} />
                 <Switch
@@ -281,12 +285,12 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
             </div>
           </header>
 
-          {/* Scrollable Children with responsive padding */}
-          <div className="flex-1 overflow-auto p-4 md:p-8 bg-(--color-bg-page) text-(--color-text-primary)">
+          {/* Scrollable Main Content Container */}
+          <main className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-8 bg-(--color-bg-page) text-(--color-text-primary)">
             <div className="max-w-7xl mx-auto">
               {children}
             </div>
-          </div>
+          </main>
 
         </div>
 

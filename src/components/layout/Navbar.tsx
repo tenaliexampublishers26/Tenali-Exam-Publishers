@@ -82,7 +82,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
         {/* Left Side: Logo */}
         <Link href="/" className={styles.logo} aria-label="Tenali Exams Publishers Home" onClick={() => setMobileMenuOpen(false)}>
           <img src="/images/logo.png" alt="" className={styles.logoImg} width={42} height={42} />
-          <div>
+          <div className={styles.logoTextWrap}>
             <div className={styles.logoText}>TENALI EXAMS PUBLISHERS</div>
             <div className={styles.logoSub}>Excellence in Every Page</div>
           </div>

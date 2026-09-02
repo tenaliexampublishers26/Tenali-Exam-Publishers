@@ -6,7 +6,19 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border-light);
-  height: 80px;
+  height: 72px;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    height: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    height: 60px;
+  }
 }
 
 .navInner {
@@ -17,43 +29,132 @@
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 0 var(--space-6);
+  gap: 12px;
 }
 
+@media (max-width: 768px) {
+  .navInner {
+    padding: 0 var(--space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .navInner {
+    padding: 0 var(--space-3);
+  }
+}
+
+/* ============================
+   LOGO
+   ============================ */
 .logo {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .logoImg {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   object-fit: contain;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .logoImg {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logoImg {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@media (max-width: 360px) {
+  .logoImg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.logoTextWrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .logoText {
   font-family: var(--font-heading);
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
+  font-size: 1rem;
+  font-weight: 800;
   color: var(--color-text-primary);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .logoText {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .logoText {
+    font-size: clamp(0.68rem, 3.5vw, 0.85rem);
+  }
+}
+
+@media (max-width: 360px) {
+  .logoText {
+    font-size: 0.65rem;
+  }
 }
 
 .logoSub {
-  font-size: var(--text-xs);
+  font-size: 0.7rem;
   color: var(--color-text-muted);
   font-weight: var(--font-regular);
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
-/* Nav Links */
+@media (max-width: 768px) {
+  .logoSub {
+    display: none;
+  }
+}
+
+/* ============================
+   DESKTOP NAV LINKS
+   ============================ */
+.desktopNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .desktopNav {
+    display: none;
+  }
+}
+
 .navLinks {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-2);
 }
 
 .navLink {
@@ -76,18 +177,16 @@
   font-weight: var(--font-semibold);
 }
 
-.desktopNav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
 .divider {
   width: 1px;
   height: 24px;
   background: var(--color-border);
+  flex-shrink: 0;
 }
 
+/* ============================
+   LOGIN BUTTON
+   ============================ */
 .loginBtn {
   display: inline-flex;
   align-items: center;
@@ -133,12 +232,14 @@
   right: -2px;
   width: 6px;
   height: 6px;
-  background-color: #10B981; /* Subtle active green */
+  background-color: #10B981;
   border-radius: 50%;
   animation: pulseBeacon 2s infinite;
 }
 
-/* Persistent Cart Button & Badge */
+/* ============================
+   CART & WISHLIST BUTTONS (Desktop)
+   ============================ */
 .cartBtn {
   position: relative;
   display: inline-flex;
@@ -153,6 +254,7 @@
   transition: all var(--transition-fast);
   text-decoration: none;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .cartBtn:hover {
@@ -174,9 +276,9 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  background: var(--color-primary); /* Refined Brand Deep Navy */
+  background: var(--color-primary);
   color: var(--color-white);
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   min-width: 18px;
   height: 18px;
@@ -204,6 +306,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .wishlistNavBtn:hover {
@@ -227,7 +330,7 @@
   right: -4px;
   background: var(--color-primary);
   color: var(--color-white);
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   min-width: 18px;
   height: 18px;
@@ -241,6 +344,9 @@
   box-shadow: 0 1px 3px rgba(26, 43, 76, 0.2);
 }
 
+/* ============================
+   ADMIN BUTTON
+   ============================ */
 .adminNavBtn {
   position: relative;
   width: 40px;
@@ -255,6 +361,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .adminNavBtn:hover {
@@ -262,17 +369,19 @@
   transform: translateY(-1px);
 }
 
-
-/* User Menu & Profile Dropdown */
+/* ============================
+   USER PROFILE DROPDOWN
+   ============================ */
 .userMenuContainer {
   position: relative;
+  flex-shrink: 0;
 }
 
 .userProfileBtn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px 6px 8px;
+  padding: 6px 12px 6px 8px;
   background: var(--color-white);
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -304,7 +413,7 @@
   font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-primary);
-  max-width: 120px;
+  max-width: 100px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -313,6 +422,7 @@
 .dropdownChevron {
   color: var(--color-text-muted);
   transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
 
 .dropdownChevron.rotated {
@@ -358,8 +468,6 @@
   text-overflow: ellipsis;
 }
 
-
-
 .dropdownDivider {
   height: 1px;
   background: var(--color-border-light);
@@ -398,11 +506,20 @@
   color: #DC2626;
 }
 
-/* Mobile Controls */
+/* ============================
+   MOBILE CONTROLS
+   ============================ */
 .mobileRightControls {
   display: none;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .mobileRightControls {
+    display: flex;
+  }
 }
 
 .mobileCartBtn {
@@ -410,14 +527,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-full);
   color: var(--color-primary);
   background: var(--color-white);
   border: 1px solid var(--color-border);
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .mobileCartBtn {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 @keyframes pulseBeacon {
@@ -439,8 +564,8 @@
   display: none;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-white);
@@ -448,26 +573,57 @@
   cursor: pointer;
   transition: background var(--transition-fast);
   -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .hamburgerBtn {
+    display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .hamburgerBtn {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 .hamburgerBtn:hover {
   background: var(--color-bg-hover);
 }
 
+/* ============================
+   MOBILE DRAWER
+   ============================ */
 .mobileDrawer {
   display: none;
   background: var(--color-white);
   border-bottom: 1px solid var(--color-border);
-  padding: 16px var(--space-6) 20px;
+  padding: 12px var(--space-4) 20px;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
   animation: slideDown 0.25s ease forwards;
-  max-height: calc(100dvh - 80px);
+  max-height: calc(100dvh - 64px);
   overflow-y: auto;
   position: absolute;
-  top: 80px;
+  top: 64px;
   left: 0;
   right: 0;
   z-index: 999;
+}
+
+@media (max-width: 768px) {
+  .mobileDrawer {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobileDrawer {
+    top: 60px;
+    max-height: calc(100dvh - 60px);
+    padding: 10px var(--space-3) 20px;
+  }
 }
 
 @keyframes slideDown {
@@ -484,18 +640,18 @@
 .mobileLinks {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .mobileNavLink {
-  padding: 12px 16px;
+  padding: 12px 14px;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-text-secondary);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
   text-decoration: none;
-  min-height: 44px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   -webkit-tap-highlight-color: transparent;
@@ -522,7 +678,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 14px;
+  padding: 10px 14px;
 }
 
 .mobileUserName {
@@ -534,10 +690,14 @@
 .mobileUserEmail {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
 }
 
 .mobileLogoutBtn {
-  padding: 12px 16px;
+  padding: 12px 14px;
   font-size: 0.95rem;
   font-weight: 600;
   color: #DC2626;
@@ -547,9 +707,10 @@
   text-align: left;
   cursor: pointer;
   transition: background var(--transition-fast);
-  min-height: 44px;
+  min-height: 48px;
   display: flex;
   align-items: center;
+  width: 100%;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -572,50 +733,11 @@
   margin-top: 8px;
   background: transparent;
   transition: all var(--transition-fast);
-  min-height: 48px;
+  min-height: 52px;
   -webkit-tap-highlight-color: transparent;
 }
 
 .mobileLoginBtn:hover {
   background: var(--color-primary);
   color: var(--color-white);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .desktopNav {
-    display: none;
-  }
-
-  .mobileRightControls {
-    display: flex;
-  }
-
-  .hamburgerBtn {
-    display: flex;
-  }
-
-  .mobileDrawer {
-    display: block;
-  }
-  
-  .logoText {
-    font-size: 0.95rem;
-  }
-
-  .logoSub {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .logoImg {
-    width: 34px;
-    height: 34px;
-  }
-  
-  .logoText {
-    font-size: clamp(0.72rem, 3.5vw, 0.88rem);
-    white-space: nowrap;
-  }
 }

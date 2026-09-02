@@ -3,6 +3,7 @@ import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useProducts } from '@/hooks/useProducts';
 import ProductCard from '@/components/ui/ProductCard';
+import styles from './study-materials.module.css';
 
 interface ExamItem {
   name: string;
@@ -34,7 +35,7 @@ function StudyMaterialsContent() {
 
   const handleExamClick = (examName: string) => {
     if (selectedExam === examName) {
-      setSelectedExam(null); // toggle off to show all
+      setSelectedExam(null);
     } else {
       setSelectedExam(examName);
     }
@@ -50,36 +51,32 @@ function StudyMaterialsContent() {
   }, [selectedExam, products]);
 
   return (
-    <div className="container">
+    <div className="container" style={{ paddingTop: '24px', paddingBottom: '60px' }}>
       {/* Back Navigation */}
-      <div style={{ marginBottom: '20px' }}>
+      <div className={styles.backRow}>
         <button
           onClick={() => {
-            if (typeof window !== 'undefined' && window.history.length > 1) {
-              router.back();
-            } else {
-              router.push('/');
+            if (typeof window !== 'undefined') {
+              const referrer = document.referrer;
+              if (referrer && (referrer.includes('/cart') || referrer.includes('/checkout'))) {
+                router.push('/');
+                return;
+              }
+              if (window.history.length > 1 && referrer && referrer.includes(window.location.host)) {
+                router.back();
+                return;
+              }
             }
+            router.push('/');
           }}
-          className="btn btn-ghost"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '8px 14px',
-            minHeight: '44px',
-            color: 'var(--color-text-secondary)',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-          }}
+          className={styles.backBtn}
           aria-label="Back to previous page"
         >
           ← Back
         </button>
       </div>
 
-      {/* Interactive Highlight Border Boxes for Available Exams */}
+      {/* Exam Filter Chips */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
@@ -96,14 +93,13 @@ function StudyMaterialsContent() {
               onClick={() => handleExamClick(item.name)}
               style={{
                 flex: '0 0 auto',
-                minWidth: '76px',
                 background: isSelected ? 'var(--color-primary)' : 'var(--color-white)',
                 border: isSelected ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-sm)',
-                padding: '6px 12px',
+                padding: '8px 14px',
                 textAlign: 'center',
-                fontWeight: isSelected ? 600 : 500,
-                fontSize: '0.80rem',
+                fontWeight: isSelected ? 700 : 500,
+                fontSize: '0.82rem',
                 color: isSelected ? 'var(--color-white)' : 'var(--color-text-secondary)',
                 boxShadow: isSelected
                   ? '0 2px 6px rgba(26, 43, 76, 0.15)'
@@ -111,10 +107,9 @@ function StudyMaterialsContent() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                letterSpacing: '0.01em',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                minHeight: '34px',
+                minHeight: '40px',
                 outline: 'none',
                 touchAction: 'manipulation',
               }}
@@ -126,14 +121,12 @@ function StudyMaterialsContent() {
         })}
       </div>
 
-      {/* Available Products Section Header */}
-      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-            {selectedExam ? `Suggested Book Set for ${selectedExam}` : 'Available Book Bundles'}
-          </h2>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Results Header */}
+      <div className={styles.resultsHeader}>
+        <h2 className={styles.resultsTitle}>
+          {selectedExam ? `Books for ${selectedExam}` : 'Available Book Bundles'}
+        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           {selectedExam && (
             <button
               onClick={() => setSelectedExam(null)}
@@ -145,20 +138,20 @@ function StudyMaterialsContent() {
                 fontWeight: 600,
                 cursor: 'pointer',
                 textDecoration: 'underline',
-                padding: '4px 8px',
+                padding: '4px 0',
               }}
             >
-              Show All Books
+              Show All
             </button>
           )}
-          <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+          <span className={styles.resultsBadge}>
             {filteredProducts.length} {filteredProducts.length === 1 ? 'Bundle' : 'Bundles'} Available
           </span>
         </div>
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className={styles.productGrid}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', gridColumn: '1 / -1' }}>Loading...</div>
         ) : (
@@ -173,7 +166,7 @@ function StudyMaterialsContent() {
 
 export default function StudyMaterialsPage() {
   return (
-    <div style={{ paddingBottom: '80px' }}>
+    <div>
       {/* Page Header */}
       <div className="page-header">
         <h1 className="page-title">Study Materials</h1>
@@ -181,7 +174,7 @@ export default function StudyMaterialsPage() {
           Quality examination preparation books and comprehensive bundles
         </p>
       </div>
-      
+
       <Suspense fallback={<div style={{ textAlign: 'center', padding: '60px' }}>Loading study materials...</div>}>
         <StudyMaterialsContent />
       </Suspense>

@@ -3,20 +3,19 @@ import { useState, useEffect } from 'react';
 import { Users, Search, RefreshCw, X, Package, Calendar as CalendarIcon, Phone, Mail, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { formatPrice } from '@/lib/utils';
+import { fetchWithCache, getCachedData } from '@/lib/api-cache';
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = getCachedData('/api/admin/users');
+  const [users, setUsers] = useState<any[]>(cachedInitial ? cachedInitial.users || [] : []);
+  const [loading, setLoading] = useState(!cachedInitial);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const toast = useToast();
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (force = false) => {
     try {
-      setLoading(true);
-      const res = await fetch('/api/admin/users');
-      if (!res.ok) throw new Error('Failed to fetch users');
-      const data = await res.json();
+      const data = await fetchWithCache('/api/admin/users', { ttl: 20000, forceRefresh: force });
       setUsers(data.users || []);
     } catch (err) {
       console.error(err);
@@ -86,7 +85,7 @@ export default function AdminUsersPage() {
             )}
           </div>
 
-          <button onClick={fetchUsers} className="btn btn-ghost btn-sm shrink-0">
+          <button onClick={() => fetchUsers(true)} className="btn btn-ghost btn-sm shrink-0">
             <RefreshCw size={16} /> Refresh
           </button>
         </div>

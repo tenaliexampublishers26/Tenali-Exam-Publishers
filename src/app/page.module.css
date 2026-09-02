@@ -15,6 +15,14 @@
   flex-wrap: wrap;
 }
 
+@media (max-width: 480px) {
+  .topGovBanner {
+    font-size: 0.72rem;
+    padding: 7px 12px;
+    letter-spacing: 0.01em;
+  }
+}
+
 .topGovBannerBadge {
   background: var(--color-accent);
   color: #0D1B3D;
@@ -34,6 +42,18 @@
   background-image: radial-gradient(circle at 80% 20%, rgba(26, 43, 76, 0.03) 0%, transparent 40%);
 }
 
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--space-8) 0 var(--space-12);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: var(--space-6) 0 var(--space-10);
+  }
+}
+
 .heroInner {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -41,15 +61,37 @@
   align-items: center;
 }
 
+@media (max-width: 1024px) {
+  .heroInner {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroInner {
+    gap: var(--space-6);
+  }
+}
+
 .heroContent {
   animation: fadeInUp 0.6s ease forwards;
+}
+
+@media (max-width: 1024px) {
+  .heroContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
 }
 
 .heroBadge {
   display: inline-flex;
   align-items: center;
   padding: var(--space-1) var(--space-3);
-  background: rgba(230, 168, 34, 0.15); /* Accent Gold with opacity */
+  background: rgba(230, 168, 34, 0.15);
   color: var(--color-accent);
   border-radius: var(--radius-sm);
   font-size: 0.7rem;
@@ -73,6 +115,14 @@
   font-weight: 700;
   margin-bottom: var(--space-4);
   letter-spacing: 0.01em;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .verificationBadge {
+    font-size: 0.68rem;
+    padding: 4px 10px;
+  }
 }
 
 .heroTitle {
@@ -85,6 +135,31 @@
   letter-spacing: -0.01em;
 }
 
+@media (max-width: 1024px) {
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 2.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: clamp(1.6rem, 6vw, 2rem);
+    letter-spacing: -0.02em;
+  }
+}
+
+@media (max-width: 360px) {
+  .heroTitle {
+    font-size: 1.5rem;
+  }
+}
+
 .heroSubtitle {
   font-size: 1.05rem;
   color: var(--color-text-secondary);
@@ -93,11 +168,44 @@
   margin-bottom: var(--space-6);
 }
 
+@media (max-width: 1024px) {
+  .heroSubtitle {
+    margin: 0 auto var(--space-8);
+    max-width: 560px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroSubtitle {
+    font-size: 0.92rem;
+    margin-bottom: var(--space-5);
+  }
+}
+
 .heroActions {
   display: flex;
   gap: var(--space-4);
   flex-wrap: wrap;
   margin-bottom: var(--space-6);
+}
+
+@media (max-width: 1024px) {
+  .heroActions {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroActions {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--space-3);
+  }
+
+  .heroActions .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .ctaPrimaryRed {
@@ -122,6 +230,12 @@
   gap: var(--space-2);
 }
 
+@media (max-width: 1024px) {
+  .heroTrust {
+    align-items: center;
+  }
+}
+
 .heroTrustItem {
   display: flex;
   align-items: center;
@@ -129,6 +243,14 @@
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   font-weight: var(--font-medium);
+}
+
+@media (max-width: 480px) {
+  .heroTrustItem {
+    font-size: 0.82rem;
+    text-align: center;
+    justify-content: center;
+  }
 }
 
 .heroTrustIcon {
@@ -155,6 +277,19 @@
   align-items: center;
 }
 
+@media (max-width: 1024px) {
+  .heroBannerContainer {
+    margin: 0 auto;
+    max-width: 480px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroBannerContainer {
+    max-width: 100%;
+  }
+}
+
 .heroTrustCounterBar {
   display: flex;
   align-items: center;
@@ -167,6 +302,26 @@
   width: 100%;
   max-width: 540px;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+@media (max-width: 1024px) {
+  .heroTrustCounterBar {
+    max-width: 480px;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroTrustCounterBar {
+    padding: 10px 8px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .heroTrustCounterBar {
+    padding: 8px 6px;
+    border-radius: var(--radius-md);
+  }
 }
 
 .counterItem {
@@ -185,6 +340,18 @@
   line-height: 1.1;
 }
 
+@media (max-width: 640px) {
+  .counterNumber {
+    font-size: 1.05rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .counterNumber {
+    font-size: 0.9rem;
+  }
+}
+
 .counterLabel {
   font-size: 0.72rem;
   color: var(--color-text-secondary);
@@ -193,22 +360,23 @@
   line-height: 1.2;
 }
 
+@media (max-width: 640px) {
+  .counterLabel {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .counterLabel {
+    font-size: 0.6rem;
+  }
+}
+
 .counterDivider {
   width: 1px;
   height: 28px;
   background: var(--color-border);
-}
-
-@media (max-width: 640px) {
-  .heroTrustCounterBar {
-    padding: 10px 8px;
-  }
-  .counterNumber {
-    font-size: 1.05rem;
-  }
-  .counterLabel {
-    font-size: 0.65rem;
-  }
+  flex-shrink: 0;
 }
 
 .ambientGlow {
@@ -233,6 +401,13 @@
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
 }
 
+@media (max-width: 480px) {
+  .heroBannerImage {
+    border-radius: 12px;
+    border-width: 2px;
+  }
+}
+
 .heroBannerContainer:hover .heroBannerImage {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 26px 52px -8px rgba(15, 23, 42, 0.28), 0 10px 24px rgba(15, 23, 42, 0.12);
@@ -247,6 +422,12 @@
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .highlightsSection {
+    padding: var(--space-8) 0;
+  }
+}
+
 .highlightsDesktopGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -254,11 +435,23 @@
   align-items: stretch;
 }
 
+@media (max-width: 1024px) {
+  .highlightsDesktopGrid {
+    display: none;
+  }
+}
+
 .highlightsMarqueeContainer {
   display: none;
   overflow: hidden;
   width: 100%;
   padding: 4px 0 8px;
+}
+
+@media (max-width: 1024px) {
+  .highlightsMarqueeContainer {
+    display: block;
+  }
 }
 
 .highlightsMarqueeTrack {
@@ -304,6 +497,19 @@
   overflow: hidden;
   cursor: default;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+@media (max-width: 1024px) {
+  .highlightCard {
+    flex: 0 0 260px;
+  }
+}
+
+@media (max-width: 480px) {
+  .highlightCard {
+    flex: 0 0 240px;
+    padding: 18px 14px;
+  }
 }
 
 .highlightCard::before {
@@ -388,6 +594,18 @@
   padding: var(--space-20) 0;
 }
 
+@media (max-width: 768px) {
+  .section {
+    padding: var(--space-12) 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .section {
+    padding: var(--space-10) 0;
+  }
+}
+
 .sectionAlt {
   background: var(--color-bg-page);
 }
@@ -395,6 +613,18 @@
 .sectionHeader {
   text-align: center;
   margin-bottom: var(--space-12);
+}
+
+@media (max-width: 768px) {
+  .sectionHeader {
+    margin-bottom: var(--space-8);
+  }
+}
+
+@media (max-width: 480px) {
+  .sectionHeader {
+    margin-bottom: var(--space-6);
+  }
 }
 
 .sectionPreTitle {
@@ -415,12 +645,30 @@
   letter-spacing: -0.01em;
 }
 
+@media (max-width: 768px) {
+  .sectionTitle {
+    font-size: var(--text-2xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .sectionTitle {
+    font-size: var(--text-xl);
+  }
+}
+
 .sectionSubtitle {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto var(--space-4);
   line-height: var(--leading-relaxed);
+}
+
+@media (max-width: 480px) {
+  .sectionSubtitle {
+    font-size: 0.9rem;
+  }
 }
 
 .titleDivider {
@@ -440,6 +688,13 @@
   margin: 0 auto;
 }
 
+@media (max-width: 640px) {
+  .categoryGrid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
 .categoryCard {
   background: var(--color-white);
   border: 1px solid var(--color-border);
@@ -453,6 +708,12 @@
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   position: relative;
   overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .categoryCard {
+    padding: var(--space-5);
+  }
 }
 
 .categoryCard::before {
@@ -482,6 +743,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .categoryIconWrap {
@@ -495,6 +758,7 @@
   justify-content: center;
   transition: all 0.25s ease;
   border: 1px solid var(--color-border-light);
+  flex-shrink: 0;
 }
 
 .categoryCard:hover .categoryIconWrap {
@@ -537,6 +801,12 @@
   margin-bottom: var(--space-2);
   line-height: 1.3;
   transition: color 0.2s ease;
+}
+
+@media (max-width: 480px) {
+  .categoryName {
+    font-size: 1.05rem;
+  }
 }
 
 .categoryCard:hover .categoryName {
@@ -589,37 +859,15 @@
   margin: 0 auto;
 }
 
-/* RESPONSIVE */
-@media (max-width: 1024px) {
-  .heroInner { grid-template-columns: 1fr; text-align: center; }
-  .heroSubtitle { margin: 0 auto var(--space-8); }
-  .heroActions { justify-content: center; }
-  .heroTrust { align-items: center; }
-  .heroBannerContainer { margin: 0 auto; max-width: 480px; }
-  
-  .highlightsDesktopGrid {
-    display: none;
-  }
-
-  .highlightsMarqueeContainer {
-    display: block;
-  }
-
-  .highlightCard {
-    flex: 0 0 260px;
+@media (max-width: 640px) {
+  .featuredGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
   }
 }
 
-@media (max-width: 768px) {
-  .heroTitle { font-size: 2.5rem; }
-}
-
-@media (max-width: 480px) {
-  .heroTitle { font-size: 2rem; }
-  .heroActions { flex-direction: column; width: 100%; }
-  .heroActions .btn { width: 100%; }
-  
-  .highlightCard {
-    flex: 0 0 240px;
+@media (max-width: 400px) {
+  .featuredGrid {
+    grid-template-columns: 1fr;
   }
 }

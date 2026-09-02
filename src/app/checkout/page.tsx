@@ -8,6 +8,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { formatPrice, getLanguageDisplay, isValidEmail, isValidMobile, isValidPinCode, generateOrderId } from '@/lib/utils';
 import { DELIVERY_CHARGE, ORIGINAL_DELIVERY_CHARGE, INDIAN_STATES } from '@/lib/data';
 import { Address, Order } from '@/types';
+import { invalidateCache } from '@/lib/api-cache';
 import styles from './checkout.module.css';
 import { 
   MapPin, 
@@ -49,7 +50,7 @@ export default function CheckoutPage() {
   });
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
 
-  // Auto-populate user details when authenticated
+  // Auto-populate user details and saved default address when authenticated
   useEffect(() => {
     if (user) {
       setAddress(prev => ({
@@ -58,6 +59,31 @@ export default function CheckoutPage() {
         email: prev.email || user.email || '',
         mobile: prev.mobile || user.phone || '',
       }));
+
+      // Fetch saved address book to auto-populate default address
+      if (user.id) {
+        fetch(`/api/user/addresses?userId=${user.id}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data?.addresses && data.addresses.length > 0) {
+              const def = data.addresses.find((a: any) => a.isDefault) || data.addresses[0];
+              if (def) {
+                setAddress({
+                  fullName: def.fullName || user.name || '',
+                  mobile: def.mobile || user.phone || '',
+                  email: def.email || user.email || '',
+                  houseOrFlat: def.houseOrFlat || '',
+                  street: def.street || '',
+                  area: def.area || '',
+                  city: def.city || '',
+                  state: def.state || '',
+                  pinCode: def.pinCode || '',
+                });
+              }
+            }
+          })
+          .catch(err => console.warn('Could not prefill address:', err));
+      }
     }
   }, [user]);
 
@@ -192,6 +218,11 @@ export default function CheckoutPage() {
     } catch {}
 
     clearCart();
+    if (user?.id) {
+      invalidateCache(`/api/user/addresses?userId=${user.id}`);
+      invalidateCache(`/api/user/orders?userId=${user.id}`);
+      invalidateCache('/api/admin');
+    }
     toast.success('Order placed successfully!');
     router.push(`/order-confirmation/${finalOrderId}`);
   };

@@ -19,11 +19,15 @@ interface SavedAddress {
   isDefault: boolean;
 }
 
+import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
+
 export default function AddressesPage(): React.JSX.Element {
   const { user } = useAuth();
   const toast = useToast();
-  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
-  const [loading, setLoading] = useState(true);
+  const url = user?.id ? `/api/user/addresses?userId=${user.id}` : '';
+  const cached = url ? getCachedData<{ addresses: SavedAddress[] }>(url) : null;
+  const [addresses, setAddresses] = useState<SavedAddress[]>(cached ? cached.addresses || [] : []);
+  const [loading, setLoading] = useState(Boolean(!cached && user));
   const [showForm, setShowForm] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -39,14 +43,11 @@ export default function AddressesPage(): React.JSX.Element {
     isDefault: false
   });
 
-  const fetchAddresses = async () => {
+  const fetchAddresses = async (force = false) => {
     if (!user) return;
     try {
-      const res = await fetch(`/api/user/addresses?userId=${user.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAddresses(data.addresses || []);
-      }
+      const data = await fetchWithCache<{ addresses: SavedAddress[] }>(`/api/user/addresses?userId=${user.id}`, { ttl: 20000, forceRefresh: force });
+      setAddresses(data.addresses || []);
     } catch (err) {
       console.error(err);
     } finally {

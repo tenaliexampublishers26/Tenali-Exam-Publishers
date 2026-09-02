@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     // Generate unique order ID
     const orderId = generateOrderId();
 
-    // 1. Insert order into Neon DB
+    // 1. Insert order into Database
     const orderResult = await sql`
       INSERT INTO orders (
         order_number, user_id, subtotal, delivery_charge, total,
@@ -40,6 +40,47 @@ export async function POST(request: Request) {
       ) RETURNING id
     `;
     const dbOrderId = orderResult[0].id;
+
+    // 1b. If user is logged in, automatically save address to user_addresses as default
+    if (userId && deliveryAddress) {
+      try {
+        const existingAddresses = await sql`
+          SELECT id, is_default FROM user_addresses WHERE user_id = ${userId}
+        `;
+
+        if (existingAddresses.length === 0) {
+          // First time ordering — save as DEFAULT address
+          await sql`
+            INSERT INTO user_addresses (
+              user_id, full_name, mobile, email, house_or_flat, street, area, city, state, pin_code, is_default
+            ) VALUES (
+              ${userId},
+              ${deliveryAddress.fullName || ''},
+              ${deliveryAddress.mobile || ''},
+              ${deliveryAddress.email || null},
+              ${deliveryAddress.houseOrFlat || ''},
+              ${deliveryAddress.street || ''},
+              ${deliveryAddress.area || null},
+              ${deliveryAddress.city || ''},
+              ${deliveryAddress.state || ''},
+              ${deliveryAddress.pinCode || ''},
+              true
+            )
+          `;
+
+          // Also update user's phone in users profile if not already set
+          if (deliveryAddress.mobile) {
+            await sql`
+              UPDATE users 
+              SET phone = COALESCE(phone, ${deliveryAddress.mobile})
+              WHERE id = ${userId}
+            `;
+          }
+        }
+      } catch (addrErr) {
+        console.warn('Notice: Could not auto-save address to user_addresses:', addrErr);
+      }
+    }
 
     // 2. Insert items into order_items table and decrement product stock
     for (const item of items) {

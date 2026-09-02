@@ -221,13 +221,14 @@
 
 @media (max-width: 768px) {
   .wrapper {
-    bottom: 18px;
-    right: 18px;
+    /* Push up above mobile sticky buy bar (≈ 70px height) */
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
   }
   
   .panel {
-    width: calc(100vw - 36px);
-    right: 0;
+    width: calc(100vw - 28px);
+    max-width: 340px;
   }
   
   .floatingBtn {
@@ -239,4 +240,25 @@
     width: 26px;
     height: 26px;
   }
+}
+
+@media (max-width: 480px) {
+  .wrapper {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+  }
+
+  .panel {
+    width: calc(100vw - 24px);
+  }
+
+  .floatingBtn {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* On non-product pages, override back to normal bottom */
+.wrapperNormal {
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }

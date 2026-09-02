@@ -5,10 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatPrice } from '@/lib/utils';
 import { PackageOpen, Package, Calendar, ChevronRight, Truck, CheckCircle2, Clock, XCircle, ArrowLeft } from 'lucide-react';
 
+import { fetchWithCache, getCachedData } from '@/lib/api-cache';
+
 export default function OrdersPage(): React.JSX.Element {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const url = user?.id ? `/api/user/orders?userId=${user.id}` : '';
+  const cached = url ? getCachedData<{ orders: any[] }>(url) : null;
+  const [orders, setOrders] = useState<any[]>(cached ? cached.orders || [] : []);
+  const [loading, setLoading] = useState(Boolean(!cached && user));
 
   useEffect(() => {
     if (!user) {
@@ -17,9 +21,7 @@ export default function OrdersPage(): React.JSX.Element {
     }
     const fetchOrders = async () => {
       try {
-        const res = await fetch(`/api/user/orders?userId=${user.id}`);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
+        const data = await fetchWithCache<{ orders: any[] }>(`/api/user/orders?userId=${user.id}`, { ttl: 20000 });
         setOrders(data.orders || []);
       } catch (err) {
         console.error(err);

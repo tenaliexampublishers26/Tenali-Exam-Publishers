@@ -11,7 +11,15 @@ export async function GET() {
       FROM products
       ORDER BY id ASC
     `;
-    return NextResponse.json({ products }, { status: 200 });
+    return NextResponse.json(
+      { products },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });

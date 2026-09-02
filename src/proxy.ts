@@ -7,56 +7,53 @@ import { updateSession } from '@/utils/supabase/middleware';
  * Replaces deprecated `middleware.ts` with `proxy.ts`.
  * Handles maintenance mode redirects and Supabase session refreshes.
  */
+// In-memory cache for maintenance mode with 15s TTL to prevent loopback request slowdowns
+let cachedMaintenanceMode: boolean | null = null;
+let lastMaintenanceCheck = 0;
+const MAINTENANCE_CACHE_TTL = 15000; // 15 seconds
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Define paths that should ALWAYS be accessible, even in maintenance mode
-  // - /admin: Admin panel
-  // - /api/admin: Admin APIs
-  // - /login: So admins can log in to turn it off
-  // - /api/auth: Auth endpoints
-  // - /auth/callback: Supabase OAuth callback
-  // - /api/settings/maintenance: The endpoint we're calling below
-  // - /maintenance: The actual maintenance page
-  // - /_next, /favicon.ico, static assets (images, css)
-  
+  // 1. Define paths that should ALWAYS bypass maintenance check
   if (
     pathname.startsWith('/admin') ||
-    pathname.startsWith('/api/admin') ||
+    pathname.startsWith('/api/') ||
     pathname.startsWith('/login') ||
-    pathname.startsWith('/api/auth') ||
-    pathname.startsWith('/auth/callback') ||
-    pathname === '/api/settings/maintenance' ||
+    pathname.startsWith('/auth') ||
     pathname === '/maintenance' ||
     pathname.startsWith('/_next') ||
-    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js)$/)
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|webp|woff2|woff|ttf)$/)
   ) {
-    // Still refresh Supabase session on these routes
     return await updateSession(request);
   }
 
-  try {
-    // 2. Check the maintenance mode status using our cached API endpoint
-    const baseUrl = request.nextUrl.origin;
-    
-    const res = await fetch(`${baseUrl}/api/settings/maintenance`, {
-      cache: 'no-store'
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      
-      // 3. If maintenance mode is ON, rewrite to the maintenance page
-      if (data.maintenanceMode === true) {
-        return NextResponse.rewrite(new URL('/maintenance', request.url));
+  // 2. Check maintenance mode from cache or cached API fetch
+  const now = Date.now();
+  if (cachedMaintenanceMode === null || now - lastMaintenanceCheck > MAINTENANCE_CACHE_TTL) {
+    try {
+      const baseUrl = request.nextUrl.origin;
+      const res = await fetch(`${baseUrl}/api/settings/maintenance`, {
+        next: { revalidate: 15 },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        cachedMaintenanceMode = data.maintenanceMode === true;
+        lastMaintenanceCheck = now;
       }
+    } catch {
+      // Fail open on error
+      cachedMaintenanceMode = false;
     }
-  } catch (error) {
-    // If something goes wrong checking maintenance mode, fail OPEN (allow traffic)
-    console.error('Proxy fetch error:', error);
   }
 
-  // 4. Refresh Supabase auth session and continue normally
+  // 3. If maintenance mode is ON, rewrite to maintenance page
+  if (cachedMaintenanceMode === true) {
+    return NextResponse.rewrite(new URL('/maintenance', request.url));
+  }
+
+  // 4. Refresh session and continue
   return await updateSession(request);
 }
 

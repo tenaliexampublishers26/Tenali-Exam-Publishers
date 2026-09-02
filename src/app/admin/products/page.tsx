@@ -4,17 +4,17 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Package, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = getCachedData('/api/admin/products');
+  const [products, setProducts] = useState<any[]>(cachedInitial ? cachedInitial.products || [] : []);
+  const [loading, setLoading] = useState(!cachedInitial);
   const toast = useToast();
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (force = false) => {
     try {
-      const res = await fetch('/api/admin/products');
-      if (!res.ok) throw new Error('Failed to fetch products');
-      const data = await res.json();
+      const data = await fetchWithCache('/api/admin/products', { ttl: 20000, forceRefresh: force });
       setProducts(data.products || []);
     } catch (err) {
       console.error(err);
@@ -34,6 +34,7 @@ export default function AdminProductsPage() {
       const res = await fetch(`/api/admin/products/${productId}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Product deleted');
+        invalidateCache('/api/admin');
         setProducts(prev => prev.filter(p => p.id !== productId));
       } else {
         toast.error('Failed to delete product');

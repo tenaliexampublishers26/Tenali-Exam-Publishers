@@ -21,14 +21,19 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 
+import { fetchWithCache, getCachedData } from '@/lib/api-cache';
+
 export default function AccountPage(): React.JSX.Element {
   const { user, login } = useAuth();
   const { items: wishlistItems } = useWishlist();
   const toast = useToast();
 
-  const [ordersCount, setOrdersCount] = useState<number>(0);
-  const [addressesCount, setAddressesCount] = useState<number>(0);
-  const [loadingStats, setLoadingStats] = useState<boolean>(true);
+  const cachedOrders = user?.id ? getCachedData<{ orders: any[] }>(`/api/user/orders?userId=${user.id}`) : null;
+  const cachedAddresses = user?.id ? getCachedData<{ addresses: any[] }>(`/api/user/addresses?userId=${user.id}`) : null;
+
+  const [ordersCount, setOrdersCount] = useState<number>(cachedOrders?.orders?.length || 0);
+  const [addressesCount, setAddressesCount] = useState<number>(cachedAddresses?.addresses?.length || 0);
+  const [loadingStats, setLoadingStats] = useState<boolean>(!cachedOrders || !cachedAddresses);
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
@@ -72,18 +77,16 @@ export default function AccountPage(): React.JSX.Element {
     
     const fetchStats = async () => {
       try {
-        const [ordersRes, addressesRes] = await Promise.all([
-          fetch(`/api/user/orders?userId=${user.id}`),
-          fetch(`/api/user/addresses?userId=${user.id}`)
+        const [ordersData, addressesData] = await Promise.all([
+          fetchWithCache<{ orders: any[] }>(`/api/user/orders?userId=${user.id}`, { ttl: 20000 }),
+          fetchWithCache<{ addresses: any[] }>(`/api/user/addresses?userId=${user.id}`, { ttl: 20000 })
         ]);
 
-        if (ordersRes.ok) {
-          const ordersData = await ordersRes.json();
-          setOrdersCount(ordersData.orders?.length || 0);
+        if (ordersData?.orders) {
+          setOrdersCount(ordersData.orders.length);
         }
-        if (addressesRes.ok) {
-          const addressesData = await addressesRes.json();
-          setAddressesCount(addressesData.addresses?.length || 0);
+        if (addressesData?.addresses) {
+          setAddressesCount(addressesData.addresses.length);
         }
       } catch (err) {
         console.error('Error fetching dashboard stats:', err);

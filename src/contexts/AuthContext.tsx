@@ -10,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (userData: User) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
-  registerWithEmail: (email: string, password: string, name?: string) => Promise<{ error?: string }>;
+  registerWithEmail: (email: string, password: string, name?: string, phone?: string) => Promise<{ error?: string }>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -169,45 +169,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('tenali_user', JSON.stringify(userData));
   }, []);
 
-  // Email/password login via Supabase Auth
+  // Email/password login via Supabase Auth & Database fallback
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<{ error?: string }> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier: email, password }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          return { error: data.error || 'Login failed' };
-        }
+    // 1. Try Supabase Auth
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error && data.user) {
+        const syncedUser = await syncUserToDatabase(data.user);
+        login(syncedUser);
+        return {};
+      }
+    } catch {
+      // Continue to database auth
+    }
+
+    // 2. Direct database authentication via /api/auth/login
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return { error: data.error || 'Invalid email or password' };
+      }
+      if (data.user) {
         login(data.user);
         return {};
-      } catch {
-        return { error: error.message };
       }
+      return { error: 'Authentication failed' };
+    } catch (err: any) {
+      return { error: err.message || 'Login failed' };
     }
-    return {};
   }, [login]);
 
-  // Email/password registration via Supabase Auth
-  const registerWithEmail = useCallback(async (email: string, password: string, name?: string): Promise<{ error?: string }> => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name || email.split('@')[0],
+  // Email/password registration via Database & Supabase Auth
+  const registerWithEmail = useCallback(async (email: string, password: string, name?: string, phone?: string): Promise<{ error?: string }> => {
+    let supabaseUserId: string | null = null;
+
+    // 1. Try Supabase Auth registration
+    try {
+      const { data } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name || email.split('@')[0],
+            phone: phone || null,
+          },
         },
-      },
-    });
-    if (error) {
-      return { error: error.message };
+      });
+      if (data?.user) {
+        supabaseUserId = data.user.id;
+      }
+    } catch (err) {
+      console.warn('Supabase signUp notice:', err);
     }
-    return {};
-  }, []);
+
+    // 2. Create user in PostgreSQL database
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: supabaseUserId,
+          name: name || email.split('@')[0],
+          identifier: email,
+          password,
+          phone: phone || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { error: data.error || 'Failed to create account' };
+      }
+
+      if (data.user) {
+        login(data.user);
+        return {};
+      }
+
+      return { error: 'Account created, please sign in' };
+    } catch (err: any) {
+      return { error: err.message || 'Registration failed' };
+    }
+  }, [login]);
 
   // Google OAuth login
   const loginWithGoogle = useCallback(async () => {

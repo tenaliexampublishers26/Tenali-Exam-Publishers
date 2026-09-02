@@ -2,8 +2,23 @@
   padding-bottom: 80px;
 }
 
+@media (max-width: 768px) {
+  .container {
+    padding-bottom: 40px;
+  }
+}
+
+/* ============================
+   BACK BUTTON
+   ============================ */
 .backRow {
   margin-bottom: 24px;
+}
+
+@media (max-width: 480px) {
+  .backRow {
+    margin-bottom: 16px;
+  }
 }
 
 .backBtn {
@@ -29,7 +44,16 @@
   border-color: var(--color-primary);
 }
 
-/* EXAM SELECTOR */
+@media (max-width: 360px) {
+  .backBtn {
+    font-size: 0.82rem;
+    padding: 7px 12px;
+  }
+}
+
+/* ============================
+   EXAM SELECTOR
+   ============================ */
 .examSelectorWrap {
   margin-bottom: 36px;
   background: var(--color-white);
@@ -39,15 +63,30 @@
   box-shadow: var(--shadow-sm);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .examSelectorWrap {
+    margin-bottom: 24px;
     padding: 20px 16px;
+    border-radius: var(--radius-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .examSelectorWrap {
+    padding: 16px 14px;
+    margin-bottom: 20px;
   }
 }
 
 .selectorHeader {
   text-align: center;
   margin-bottom: 24px;
+}
+
+@media (max-width: 480px) {
+  .selectorHeader {
+    margin-bottom: 18px;
+  }
 }
 
 .selectorTitle {
@@ -59,9 +98,21 @@
   letter-spacing: -0.01em;
 }
 
-@media (min-width: 768px) {
+@media (max-width: 768px) {
   .selectorTitle {
-    font-size: 1.85rem;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .selectorTitle {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .selectorTitle {
+    font-size: 1.1rem;
   }
 }
 
@@ -72,6 +123,15 @@
   margin: 0 auto;
 }
 
+@media (max-width: 480px) {
+  .selectorSubtitle {
+    font-size: 0.84rem;
+  }
+}
+
+/* ============================
+   EXAM GRID
+   ============================ */
 .examGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -85,10 +145,17 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
+  .examGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
   .examGrid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 }
 
@@ -103,9 +170,26 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  min-height: 140px;
+  min-height: 130px;
   touch-action: manipulation;
   outline: none;
+}
+
+@media (max-width: 768px) {
+  .examCard {
+    padding: 16px 14px;
+    min-height: 110px;
+  }
+}
+
+@media (max-width: 480px) {
+  .examCard {
+    padding: 14px 12px;
+    min-height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
 }
 
 .examCard:hover {
@@ -129,6 +213,13 @@
   margin-bottom: 12px;
 }
 
+@media (max-width: 480px) {
+  .cardTopRow {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+}
+
 .examIconWrap {
   width: 44px;
   height: 44px;
@@ -141,6 +232,13 @@
   border: 1.5px solid var(--color-border);
   transition: all 0.2s ease;
   flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .examIconWrap {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 .examCardActive .examIconWrap,
@@ -160,15 +258,40 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .activeIndicator {
+    display: none;
+  }
+}
+
+.examCardBody {
+  flex: 1;
+  min-width: 0;
 }
 
 .examName {
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--color-primary);
   margin-bottom: 4px;
   line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .examName {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .examName {
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+  }
 }
 
 .examSubtitle {
@@ -176,6 +299,12 @@
   color: var(--color-text-secondary);
   line-height: 1.35;
   margin-top: auto;
+}
+
+@media (max-width: 480px) {
+  .examSubtitle {
+    font-size: 0.76rem;
+  }
 }
 
 .resetWrap {
@@ -191,9 +320,10 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: var(--radius-sm);
   transition: color 0.15s ease;
+  min-height: 40px;
 }
 
 .resetBtn:hover {
@@ -201,21 +331,35 @@
   text-decoration: underline;
 }
 
-/* RESULTS HEADER */
+/* ============================
+   RESULTS HEADER
+   ============================ */
 .resultsHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+  .resultsHeader {
+    margin-bottom: 14px;
+  }
 }
 
 .resultsTitle {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--color-primary);
+}
+
+@media (max-width: 480px) {
+  .resultsTitle {
+    font-size: 1.05rem;
+  }
 }
 
 .resultsBadge {
@@ -224,8 +368,25 @@
   font-weight: 500;
 }
 
+/* ============================
+   PRODUCT GRID
+   ============================ */
 .productGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .productGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .productGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }

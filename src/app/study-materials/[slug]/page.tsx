@@ -122,32 +122,19 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   return (
     <div className={styles.container}>
-      <div className={styles.breadcrumbWrap} style={{ padding: '14px 0', borderBottom: '1px solid var(--color-border-light)', marginBottom: '24px', background: 'var(--color-bg-page)' }}>
-        <div className="container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+      {/* Breadcrumb Bar */}
+      <div className={styles.breadcrumbWrap}>
+        <div className={`container ${styles.breadcrumbInner}`}>
           <button
             type="button"
             onClick={() => router.push('/')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              background: 'var(--color-bg-card)',
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-text-primary)',
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
-              transition: 'all 0.15s ease',
-            }}
+            className={styles.backBtn}
           >
-            <ArrowLeft size={18} style={{ color: '#2563eb' }} />
-            <span>Back to Home Page</span>
+            <ArrowLeft size={16} style={{ color: '#2563eb', flexShrink: 0 }} />
+            <span>Back to Home</span>
           </button>
 
-          <div className={styles.breadcrumb} style={{ margin: 0 }}>
+          <div className={styles.breadcrumb}>
             <Link href="/" className={styles.breadcrumbLink}>Home</Link>
             <span>/</span>
             <Link href="/study-materials" className={styles.breadcrumbLink}>Study Materials</Link>
@@ -159,7 +146,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
       <div className="container">
         <div className={styles.productLayout}>
-          {/* Side-by-Side Scrolling Gallery */}
+          {/* Gallery Column */}
           <div className={styles.imageCol}>
             <div className={styles.galleryContainer}>
               <div
@@ -179,7 +166,6 @@ export default function ProductDetailPage({ params }: PageProps) {
                 ))}
               </div>
 
-              {/* Scroll Counter Badge & Navigation Buttons */}
               {imageList.length > 1 && (
                 <>
                   <span className={styles.galleryCounterBadge}>
@@ -230,7 +216,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               {formatPrice(product.price)}
             </div>
 
-            {/* Bundle Specification Overview */}
+            {/* Bundle Summary */}
             <div className={styles.bundleSummaryBox}>
               <div className={styles.bundleSummaryGrid}>
                 <div className={styles.bundleSummaryItem}>
@@ -266,112 +252,32 @@ export default function ProductDetailPage({ params }: PageProps) {
                     .filter((f) => !/previous/i.test(f))
                     .map((f, i) => (
                       <li key={i} className={styles.featureItem}>
-                        <span className={styles.featureCheck}>✓</span> {f}
+                        <span className={styles.featureBullet}>•</span> {f}
                       </li>
                     ))}
                 </ul>
               </div>
             )}
 
-            {/* Exam Syllabus Section */}
-            <div style={{
-              marginTop: '20px',
-              padding: '18px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)',
-              border: '1px solid var(--color-border)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <BookOpen size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>
-                      Exam Syllabus Coverage
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                      Complete Official India Post Syllabus & Topics
-                    </div>
-                  </div>
+            {/* Exam Syllabus Coverage Banner */}
+            <div className={styles.syllabusBanner}>
+              <div className={styles.syllabusInfo}>
+                <div className={styles.syllabusIconBox}>
+                  <BookOpen size={20} />
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsSyllabusOpen(true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 18px',
-                    borderRadius: '12px',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <FileText size={16} />
-                  <span>View Detailed Exam Syllabus</span>
-                </button>
+                <div className={styles.syllabusTextBlock}>
+                  <div className={styles.syllabusTitle}>Exam Syllabus Coverage</div>
+                  <div className={styles.syllabusSubtitle}>Complete Official India Post LDCE Syllabus & Topics</div>
+                </div>
               </div>
-
-              {/* Short & Clean Syllabus Overview Pills */}
-              {product.slug === 'mts-postman-mg' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ background: 'var(--color-bg-card)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--color-border-light)' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📘 MTS Syllabus Overview</span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.55 }}>
-                      Post Office Guide Part-I • Postal Rules • Post Offices • Postage & Stamps • Packing & Posting • Addressing • Post Boxes & Post Bags • Postal Articles • Postal Services • Banking & Remittances • Insurance • General Knowledge • Indian Geography • Civics • Indian Culture & Freedom Struggle • Ethics & Moral Studies • BODMAS • Percentage • Profit & Loss • Simple Interest • Average • Time & Work • Time & Distance • Unitary Method
-                    </p>
-                  </div>
-
-                  <div style={{ background: 'var(--color-bg-card)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--color-border-light)' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📗 Postman Syllabus Overview</span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.55 }}>
-                      Post Office Guide Part-I • General Knowledge • Mathematics • Postal Operations • Mail Delivery • Refusal of Articles • e-Money Orders • Redirection • Address Change • Deceased Person Articles • Rural Postman Facilities • Postal Manual Volume VI Part III • Head Postman • Postal Business • Sale of Stamps • Postman&apos;s Book • Delivery Procedures • Registered & Insured Articles • e-MO Payments • Village Postman Duties • Postal Manual Volume VII • Stamps & Seals • Stationery • Mail Abstract • Exchange of Mails • Transit Bags • Mail Guard/Agent Duties • A & B Orders
-                    </p>
-                  </div>
-
-                  <div style={{ background: 'var(--color-bg-card)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--color-border-light)' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#d97706', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📙 Mail Guard (MG) Syllabus Overview</span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.55 }}>
-                      Post Office Guide Part-I • General Knowledge • Mathematics • Postal Operations • Mail Handling • Delivery & Refusal of Articles • e-Money Orders • Redirection • Address Change • Postal Manual Volume VI Part III • Postal Business • Postman&apos;s Book • Delivery Procedures • Registered & Insured Articles • Postal Manual Volume VII • Stamps & Seals • Mail Abstract • Exchange of Mails • Transit Bags • Duties & Responsibilities of Mail Guard/Agent • Final Duties Before Leaving Van/Office • A & B Orders
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ background: 'var(--color-bg-card)', padding: '12px 14px', borderRadius: '12px', border: '1px solid var(--color-border-light)' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    📘 PA & SA Complete Syllabus Overview
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.55 }}>
-                    PA & SA Complete Syllabus • Departmental Rules • Post Office Guide Part I & II • IT Modernization Terminology • Postal Products & Services • Mails • Banking & Remittances • Insurance • Stamps & Business • Postal Manual Volume VI Part I • Postal Manual Volume VI Part III Chapters 1 & 2 • Updated SB Orders • Postal Manual Volume VII • Foreign Post Manual • Indian Geography • Civics • General Knowledge • Indian Culture & Freedom Struggle • Ethics & Moral Study • BODMAS • Percentage • Profit & Loss • Simple Interest • Average • Time & Work • Time & Distance • Unitary Method • Reasoning & Analytical Ability • Non-Verbal / Pictorial Reasoning • Data Entry Skill Test (DEST) – 1200 Key Depressions (+5%)
-                  </p>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setIsSyllabusOpen(true)}
+                className={styles.syllabusViewBtn}
+              >
+                <FileText size={15} />
+                <span>View Details</span>
+              </button>
             </div>
 
             <hr className="divider" />
@@ -398,12 +304,6 @@ export default function ProductDetailPage({ params }: PageProps) {
                         background: selectedLang === lang.code ? 'var(--color-text-primary)' : 'var(--color-white)',
                         color: selectedLang === lang.code ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
                         cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '10px 20px',
-                        borderRadius: '8px',
-                        fontWeight: 600
                       }}
                     >
                       <span>{getLanguageDisplay(lang.code)}</span>
@@ -478,7 +378,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               )}
             </button>
 
-            {/* Delivery & Payment Trust Strip (#4) */}
+            {/* Trust Strip */}
             <div className={styles.trustStrip}>
               <div className={styles.trustItem}>
                 <Truck size={18} color="var(--color-primary)" />
@@ -496,7 +396,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             {/* Support */}
             <div className={styles.supportBox}>
-              <Mail size={18} color="var(--color-pastel-blue-deeper)" />
+              <Mail size={18} color="var(--color-pastel-blue-deeper)" style={{ flexShrink: 0 }} />
               <div>
                 <strong>Need help?</strong>{' '}
                 <a href="mailto:tenaliexampublishers@gmail.com" style={{ color: 'var(--color-pastel-blue-deeper)', fontWeight: 500 }}>
@@ -508,7 +408,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Mobile Sticky "Buy Now" Action Bar (#1) */}
+      {/* Mobile Sticky Buy Bar */}
       <div className={styles.mobileStickyBar}>
         <div className={styles.stickyPriceGroup}>
           <div className={styles.stickyPrice}>{formatPrice(product.price)}</div>

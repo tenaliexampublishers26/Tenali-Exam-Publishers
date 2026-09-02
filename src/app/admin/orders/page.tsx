@@ -5,9 +5,12 @@ import { ShoppingCart, Package, RefreshCw, Copy, Check, Search, Calendar as Cale
 import { useToast } from '@/contexts/ToastContext';
 import PostalSlipCard from '@/components/admin/PostalSlipCard';
 
+import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
+
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = getCachedData('/api/admin/orders');
+  const [orders, setOrders] = useState<any[]>(cachedInitial ? cachedInitial.orders || [] : []);
+  const [loading, setLoading] = useState(!cachedInitial);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,11 +72,9 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (force = false) => {
     try {
-      const res = await fetch('/api/admin/orders');
-      if (!res.ok) throw new Error('Failed to fetch orders');
-      const data = await res.json();
+      const data = await fetchWithCache('/api/admin/orders', { ttl: 15000, forceRefresh: force });
       setOrders(data.orders || []);
     } catch (err) {
       console.error(err);
@@ -97,6 +98,7 @@ export default function AdminOrdersPage() {
       
       if (res.ok) {
         toast.success('Order status updated');
+        invalidateCache('/api/admin');
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
       } else {
         toast.error('Failed to update status');

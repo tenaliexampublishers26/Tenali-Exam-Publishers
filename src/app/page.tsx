@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useProducts } from '@/hooks/useProducts';
 import ProductCard from '@/components/ui/ProductCard';
 import ContactSection from '@/components/sections/ContactSection';
+import LiveNotificationMarquee from '@/components/ui/LiveNotificationMarquee';
 import styles from './page.module.css';
 
 interface HighlightItem {
@@ -135,6 +136,9 @@ export default function HomePage() {
         <span>Dedicated Departmental Study Materials & Guides for India Post Examinations</span>
       </div>
 
+      {/* Live Scrolling Notification Marquee Banner */}
+      <LiveNotificationMarquee />
+
       {/* Hero Section */}
       <section className={styles.hero}>
         <div className={`container ${styles.heroInner}`}>
@@ -203,8 +207,8 @@ export default function HomePage() {
               </div>
               <div className={styles.counterDivider} />
               <div className={styles.counterItem}>
-                <span className={styles.counterNumber}>3 Mediums</span>
-                <span className={styles.counterLabel}>English, Telugu, Hindi</span>
+                <span className={styles.counterNumber}>All Mediums</span>
+                <span className={styles.counterLabel}>Available</span>
               </div>
             </div>
           </div>

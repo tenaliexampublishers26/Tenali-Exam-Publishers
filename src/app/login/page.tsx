@@ -3,7 +3,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import { Lock, Mail, ShieldAlert, KeyRound, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, KeyRound, Sparkles, Eye, EyeOff, Phone } from 'lucide-react';
 
 function LoginContent() {
   const router = useRouter();
@@ -21,6 +21,7 @@ function LoginContent() {
   
   const [formData, setFormData] = useState({
     identifier: '', // Username or Email
+    phone: '',
     password: '',
     confirmPassword: '',
   });
@@ -58,37 +59,28 @@ function LoginContent() {
         : `${formData.identifier.trim()}@gmail.com`;
 
       if (isLoginMode) {
-        // Try Supabase Auth first, then fallback to legacy API
         const result = await loginWithEmail(email, formData.password);
         if (result.error) {
           throw new Error(result.error);
         }
         toast.success('Logged in successfully!');
       } else {
-        // Register with Supabase Auth
         const name = formData.identifier.split('@')[0];
-        const result = await registerWithEmail(email, formData.password, name);
+        const result = await registerWithEmail(email, formData.password, name, formData.phone);
         if (result.error) {
           throw new Error(result.error);
         }
-        toast.success('Account created successfully! Please check your email to verify.');
+        toast.success('Account created successfully! Welcome to Tenali Exam Publishers.');
       }
       
-      // Note: for Supabase Auth, the redirect happens after onAuthStateChange fires
-      // For legacy login, redirect immediately
+      // Check stored user role for destination: Admins to /admin, Customers to / (or specific redirect)
       const currentUser = localStorage.getItem('tenali_user');
-      if (currentUser) {
-        const parsed = JSON.parse(currentUser);
-        if (parsed.role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push(redirectUrl === '/' ? '/account' : redirectUrl);
-        }
+      const parsed = currentUser ? JSON.parse(currentUser) : null;
+      if (parsed?.role === 'admin') {
+        router.push('/admin');
       } else {
-        // Supabase Auth - redirect after a short delay to allow auth state to propagate
-        setTimeout(() => {
-          router.push(redirectUrl === '/' ? '/account' : redirectUrl);
-        }, 1000);
+        const destination = (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/account') ? redirectUrl : '/';
+        router.push(destination);
       }
     } catch (err: any) {
       setFormError(err.message || 'Authentication failed');
@@ -241,6 +233,42 @@ function LoginContent() {
               />
             </div>
           </div>
+
+          {/* Field: Phone Number (Sign Up Mode only) */}
+          {!isLoginMode && (
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Phone Number <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>(Optional)</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: focusedField === 'phone' ? '#2563eb' : '#94a3b8', display: 'flex', transition: 'color 0.2s' }}>
+                  <Phone size={18} />
+                </span>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  onFocus={() => setFocusedField('phone')}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="Enter 10-digit mobile number"
+                  maxLength={15}
+                  style={{
+                    width: '100%', 
+                    padding: '12px 14px 12px 42px', 
+                    borderRadius: '12px',
+                    border: focusedField === 'phone' ? '1.5px solid #2563eb' : '1.5px solid rgba(226, 232, 240, 0.9)', 
+                    outline: 'none',
+                    fontSize: '0.95rem',
+                    color: '#0f172a',
+                    background: '#ffffff',
+                    boxShadow: focusedField === 'phone' ? '0 0 0 4px rgba(59, 130, 246, 0.08)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Field: Password */}
           <div style={{ marginBottom: isLoginMode ? '26px' : '18px' }}>
@@ -468,7 +496,7 @@ function LoginContent() {
             onMouseLeave={() => setToggleHover(false)}
             onClick={() => {
               setIsLoginMode(!isLoginMode);
-              setFormData({ identifier: '', password: '', confirmPassword: '' });
+              setFormData({ identifier: '', phone: '', password: '', confirmPassword: '' });
             }}
             style={{
               background: 'none', 

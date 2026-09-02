@@ -20,7 +20,23 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { key, value } = await req.json();
+    const body = await req.json();
+    
+    // Support batch update if settings object is passed
+    if (body.settings && typeof body.settings === 'object') {
+      const entries = Object.entries(body.settings);
+      for (const [key, value] of entries) {
+        const stringValue = String(value);
+        await sql`
+          INSERT INTO settings (key, value) 
+          VALUES (${key}, ${stringValue})
+          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP;
+        `;
+      }
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    const { key, value } = body;
     
     if (!key || value === undefined) {
       return NextResponse.json({ error: 'Key and value are required' }, { status: 400 });

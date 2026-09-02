@@ -20,10 +20,12 @@ import {
 } from 'lucide-react';
 
 import RevenueChart from '@/components/ui/RevenueChart';
+import { fetchWithCache, getCachedData } from '@/lib/api-cache';
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedInitial = getCachedData('/api/admin/analytics');
+  const [data, setData] = useState<any>(cachedInitial ? cachedInitial.data : null);
+  const [loading, setLoading] = useState(!cachedInitial);
   const [error, setError] = useState('');
 
   // Revenue Intelligence states
@@ -34,11 +36,9 @@ export default function AdminDashboardPage() {
   const [revenueLoading, setRevenueLoading] = useState(true);
   const [revenueError, setRevenueError] = useState('');
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (force = false) => {
     try {
-      const res = await fetch('/api/admin/analytics');
-      if (!res.ok) throw new Error('Failed to fetch analytics');
-      const json = await res.json();
+      const json = await fetchWithCache('/api/admin/analytics', { ttl: 20000, forceRefresh: force });
       setData(json.data);
       setError('');
     } catch (err: any) {
@@ -48,16 +48,20 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const fetchRevenueAnalytics = async () => {
-    setRevenueLoading(true);
+  const fetchRevenueAnalytics = async (force = false) => {
     try {
       let url = `/api/admin/analytics/revenue?period=${period}&range=${range}`;
       if (range === 'custom' && customDates.start && customDates.end) {
         url += `&startDate=${customDates.start}&endDate=${customDates.end}`;
       }
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch revenue analytics');
-      const json = await res.json();
+      
+      const cached = getCachedData(url);
+      if (cached && !revenueData) {
+        setRevenueData(cached.data);
+        setRevenueLoading(false);
+      }
+
+      const json = await fetchWithCache(url, { ttl: 20000, forceRefresh: force });
       setRevenueData(json.data);
       setRevenueError('');
     } catch (err: any) {
@@ -325,7 +329,7 @@ export default function AdminDashboardPage() {
         {revenueError ? (
           <div className="p-6 text-(--color-error) bg-(--color-error-bg) rounded-2xl border border-(--color-border) flex items-center justify-between">
             <span>{revenueError}</span>
-            <button onClick={fetchRevenueAnalytics} className="btn btn-danger btn-sm">Try Again</button>
+            <button onClick={() => fetchRevenueAnalytics(true)} className="btn btn-danger btn-sm">Try Again</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
