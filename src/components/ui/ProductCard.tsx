@@ -33,7 +33,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         
         <img
           src={product.image}
-          alt={product.name}
+          alt={`${product.name} - India Post LDCE Exam Preparation Guide Book`}
           className={styles.image}
           loading="lazy"
           width={400}

@@ -16,7 +16,7 @@ export default function Footer() {
           {/* Brand */}
           <div className={styles.footerBrand}>
             <div className={styles.footerLogo}>
-              <img src="/images/logo.png" alt="" className={styles.footerLogoImg} width={44} height={44} />
+              <img src="/images/logo.png" alt="Tenali Exams Publishers Official Logo" className={styles.footerLogoImg} width={44} height={44} />
               <span className={styles.footerLogoText}>TENALI EXAMS PUBLISHERS</span>
             </div>
             <p className={styles.footerTagline}>

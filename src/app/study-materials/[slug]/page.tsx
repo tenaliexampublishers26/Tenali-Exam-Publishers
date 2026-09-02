@@ -1,450 +1,134 @@
-'use client';
-import { useState, useRef, use } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useProduct } from '@/hooks/useProducts';
-import { useCart } from '@/contexts/CartContext';
-import { useWishlist } from '@/contexts/WishlistContext';
-import { useToast } from '@/contexts/ToastContext';
-import { formatPrice, getLanguageDisplay } from '@/lib/utils';
-import { Truck, ShieldCheck, PackageCheck, Mail, Heart, Check, ArrowLeft, BookOpen, FileText } from 'lucide-react';
-import SyllabusModal from '@/components/ui/SyllabusModal';
-import styles from './product-detail.module.css';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { getProductBySlug, products as staticProducts } from '@/lib/data';
+import { sql } from '@/lib/db';
+import { Product } from '@/types';
+import { SITE_NAME, SITE_URL, getProductSchema, getBreadcrumbSchema } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
+import ProductDetailClient from './ProductDetailClient';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default function ProductDetailPage({ params }: PageProps) {
-  const { slug } = use(params);
-  const router = useRouter();
-  const { product, loading } = useProduct(slug);
-  const { addItem } = useCart();
-  const { isInWishlist, toggleWishlist } = useWishlist();
-  const toast = useToast();
+async function fetchProductData(slug: string): Promise<Product | null> {
+  const querySlug = slug === 'pa-sa-lgo' ? 'pa-sa' : slug;
 
-  const [selectedLang, setSelectedLang] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [langError, setLangError] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
-  const [addedToCartSuccess, setAddedToCartSuccess] = useState(false);
-  const galleryRef = useRef<HTMLDivElement | null>(null);
-  const mediumSectionRef = useRef<HTMLDivElement | null>(null);
+  try {
+    const dbProducts = await sql`
+      SELECT id, slug, name, bundle_title as "bundleTitle", books_included as "booksIncluded", 
+             edition, short_description as "shortDescription", description, price, 
+             image, images, category, exam_coverage as "examCoverage", features, 
+             brand, badge, stock, languages
+      FROM products
+      WHERE slug = ${querySlug} OR id = ${querySlug}
+      LIMIT 1
+    `;
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '120px 20px' }}>
-        <div style={{ fontSize: '1.5rem', color: 'var(--color-text-muted)' }}>Loading product...</div>
-      </div>
-    );
+    if (dbProducts && dbProducts.length > 0) {
+      return dbProducts[0] as Product;
+    }
+  } catch (error) {
+    // Fallback to static data
   }
+
+  const staticProduct = getProductBySlug(querySlug);
+  return staticProduct || null;
+}
+
+export async function generateStaticParams() {
+  return staticProducts.map((p) => ({
+    slug: p.slug,
+  }));
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await fetchProductData(slug);
 
   if (!product) {
-    return (
-      <div style={{ textAlign: 'center', padding: '120px 20px', position: 'relative' }}>
-        <Link href="/" style={{ position: 'absolute', left: '20px', top: '24px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>
-          <ArrowLeft size={16} /> Home
-        </Link>
-        <div style={{ fontSize: '4rem', marginBottom: '16px' }}>📖</div>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '8px' }}>Product Not Found</h1>
-        <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px' }}>The product you are looking for does not exist.</p>
-        <Link href="/study-materials" className="btn btn-primary">Browse Study Materials</Link>
-      </div>
-    );
+    return {
+      title: 'Product Not Found | Tenali Exam Publishers',
+      description: 'The requested exam study material or book set was not found.',
+      robots: { index: false, follow: false },
+    };
   }
 
-  const inWishlist = isInWishlist(product.id);
-  const imageList = product.images && product.images.length > 0 ? product.images : [product.image];
+  const pageTitle = `${product.name} — ${product.bundleTitle || 'Complete Book Set'} (${product.edition || '2026 Edition'})`;
+  const pageDescription =
+    product.shortDescription ||
+    `${product.name} preparation book for India Post LDCE examinations. Covers ${product.examCoverage || 'full syllabus'}. Available in English, Telugu, and Hindi mediums. Order online at Tenali Exam Publishers.`;
 
-  const handleScroll = () => {
-    if (galleryRef.current) {
-      const scrollLeft = galleryRef.current.scrollLeft;
-      const width = galleryRef.current.offsetWidth;
-      if (width > 0) {
-        const newIndex = Math.round(scrollLeft / width);
-        if (newIndex >= 0 && newIndex < imageList.length && newIndex !== currentSlide) {
-          setCurrentSlide(newIndex);
-        }
-      }
-    }
+  const ogImage = product.image.startsWith('http')
+    ? product.image
+    : `${SITE_URL}${product.image}`;
+
+  const productLanguages = Array.isArray(product.languages)
+    ? product.languages.map((l: any) => (typeof l === 'string' ? l : l.name)).join(', ')
+    : 'English, Telugu, Hindi';
+
+  return {
+    title: pageTitle,
+    description: pageDescription,
+    keywords: [
+      product.name,
+      `${product.name} book`,
+      `${product.name} Telugu medium`,
+      `${product.name} English medium`,
+      `${product.name} Hindi medium`,
+      product.bundleTitle || '',
+      product.category || '',
+      'India Post LDCE exam study guide',
+      'Tenali Exam Publishers',
+      'Postal Department competitive books',
+      'Speed Post delivery',
+    ].filter(Boolean),
+    alternates: {
+      canonical: `/study-materials/${product.slug}`,
+    },
+    openGraph: {
+      title: `${product.name} | Tenali Exam Publishers`,
+      description: `Buy ${product.name} (${product.bundleTitle || 'Study Set'}) - Price: ₹${product.price}. Mediums: ${productLanguages}. Official India Post LDCE study guide.`,
+      url: `${SITE_URL}/study-materials/${product.slug}`,
+      type: 'website',
+      images: [
+        {
+          url: ogImage,
+          width: 800,
+          height: 1000,
+          alt: `${product.name} Book Cover - Tenali Exam Publishers`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${product.name} | Tenali Exam Publishers`,
+      description: `Buy ${product.name} book set for India Post LDCE exam preparation. Available in English, Telugu & Hindi.`,
+      images: [ogImage],
+    },
   };
+}
 
-  const scrollToSlide = (index: number) => {
-    if (galleryRef.current) {
-      const width = galleryRef.current.offsetWidth;
-      galleryRef.current.scrollTo({ left: width * index, behavior: 'smooth' });
-      setCurrentSlide(index);
-    }
-  };
+export default async function ProductDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const product = await fetchProductData(slug);
 
-  const getProductLanguages = () => {
-    let raw: any = product?.languages;
-    if (typeof raw === 'string') {
-      try {
-        raw = JSON.parse(raw);
-        if (typeof raw === 'string') raw = JSON.parse(raw);
-      } catch (e) { raw = []; }
-    }
-    return Array.isArray(raw) ? raw : [];
-  };
+  if (!product) {
+    return <ProductDetailClient initialProduct={null} slug={slug} />;
+  }
 
-  const productLangs = getProductLanguages();
-
-  const handleAddToCart = () => {
-    if (productLangs.length > 0 && !selectedLang) {
-      setLangError(true);
-      mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    setLangError(false);
-    addItem(product, selectedLang, quantity);
-    setAddedToCartSuccess(true);
-    setTimeout(() => setAddedToCartSuccess(false), 3000);
-    toast.success(`${product.name} added to cart`);
-  };
-
-  const handleBuyNow = () => {
-    if (productLangs.length > 0 && !selectedLang) {
-      setLangError(true);
-      mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    setLangError(false);
-    addItem(product, selectedLang, quantity);
-    router.push('/cart');
-  };
-
-  const handleWishlist = () => {
-    const added = toggleWishlist(product);
-    toast.success(added ? 'Added to wishlist' : 'Removed from wishlist');
-  };
+  const productSchema = getProductSchema(product);
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Study Materials', url: '/study-materials' },
+    { name: product.name, url: `/study-materials/${product.slug}` },
+  ]);
 
   return (
-    <div className={styles.container}>
-      {/* Breadcrumb Bar */}
-      <div className={styles.breadcrumbWrap}>
-        <div className={`container ${styles.breadcrumbInner}`}>
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            className={styles.backBtn}
-          >
-            <ArrowLeft size={16} style={{ color: '#2563eb', flexShrink: 0 }} />
-            <span>Back to Home</span>
-          </button>
-
-          <div className={styles.breadcrumb}>
-            <Link href="/" className={styles.breadcrumbLink}>Home</Link>
-            <span>/</span>
-            <Link href="/study-materials" className={styles.breadcrumbLink}>Study Materials</Link>
-            <span>/</span>
-            <span className={styles.breadcrumbCurrent}>{product.name}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="container">
-        <div className={styles.productLayout}>
-          {/* Gallery Column */}
-          <div className={styles.imageCol}>
-            <div className={styles.galleryContainer}>
-              <div
-                ref={galleryRef}
-                onScroll={handleScroll}
-                className={styles.galleryScrollTrack}
-              >
-                {imageList.map((imgSrc, idx) => (
-                  <div key={idx} className={styles.gallerySlide}>
-                    <img
-                      src={imgSrc}
-                      alt={`${product.name} image ${idx + 1}`}
-                      className={styles.galleryProductImg}
-                      loading={idx === 0 ? 'eager' : 'lazy'}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {imageList.length > 1 && (
-                <>
-                  <span className={styles.galleryCounterBadge}>
-                    {currentSlide + 1}/{imageList.length}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => scrollToSlide(currentSlide > 0 ? currentSlide - 1 : imageList.length - 1)}
-                    className={`${styles.galleryNavBtn} ${styles.galleryPrevBtn}`}
-                    aria-label="Previous image"
-                  >
-                    ‹
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => scrollToSlide(currentSlide < imageList.length - 1 ? currentSlide + 1 : 0)}
-                    className={`${styles.galleryNavBtn} ${styles.galleryNextBtn}`}
-                    aria-label="Next image"
-                  >
-                    ›
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Product Info */}
-          <div className={styles.productInfo}>
-            {/* Badge */}
-            {product.badge && (
-              <span className={`badge badge-blue ${styles.badge}`}>
-                {product.badge}
-              </span>
-            )}
-
-            <h1 className={styles.productTitle}>
-              {product.name}
-            </h1>
-
-            <p className={styles.category}>
-              {product.bundleTitle || product.category}
-            </p>
-
-            {/* Price */}
-            <div className={styles.price}>
-              {formatPrice(product.price)}
-            </div>
-
-            {/* Bundle Summary */}
-            <div className={styles.bundleSummaryBox}>
-              <div className={styles.bundleSummaryGrid}>
-                <div className={styles.bundleSummaryItem}>
-                  <span className={styles.bundleSummaryLabel}>Bundle Details</span>
-                  <span className={styles.bundleSummaryValue}>Includes {product.booksIncluded || 2} Books</span>
-                </div>
-                <div className={styles.bundleSummaryItem}>
-                  <span className={styles.bundleSummaryLabel}>Edition</span>
-                  <span className={styles.bundleSummaryValue}>{product.edition || 'First Edition'}</span>
-                </div>
-                {product.examCoverage && (
-                  <div className={styles.bundleSummaryItem} style={{ gridColumn: '1 / -1' }}>
-                    <span className={styles.bundleSummaryLabel}>Exam Coverage</span>
-                    <span className={styles.bundleSummaryValue}>{product.examCoverage}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className={styles.description}>
-              {product.description}
-            </p>
-
-            {/* Features */}
-            {product.features && (
-              <div className={styles.featuresWrap}>
-                <h3 className={styles.featuresTitle}>
-                  What&apos;s Included in This {product.booksIncluded || 2}-Book Bundle
-                </h3>
-                <ul className={styles.featuresList}>
-                  {product.features
-                    .filter((f) => !/previous/i.test(f))
-                    .map((f, i) => (
-                      <li key={i} className={styles.featureItem}>
-                        <span className={styles.featureBullet}>•</span> {f}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Exam Syllabus Coverage Banner */}
-            <div className={styles.syllabusBanner}>
-              <div className={styles.syllabusInfo}>
-                <div className={styles.syllabusIconBox}>
-                  <BookOpen size={20} />
-                </div>
-                <div className={styles.syllabusTextBlock}>
-                  <div className={styles.syllabusTitle}>Exam Syllabus Coverage</div>
-                  <div className={styles.syllabusSubtitle}>Complete Official India Post LDCE Syllabus & Topics</div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsSyllabusOpen(true)}
-                className={styles.syllabusViewBtn}
-              >
-                <FileText size={15} />
-                <span>View Details</span>
-              </button>
-            </div>
-
-            <hr className="divider" />
-
-            {/* Language Selection */}
-            <div className={styles.sectionBlock} ref={mediumSectionRef}>
-              <h3
-                className={styles.sectionLabel}
-                style={{
-                  color: langError ? 'var(--color-error)' : 'var(--color-text-primary)',
-                }}
-              >
-                Select Medium <span style={{ color: 'var(--color-error)' }}>*</span>
-              </h3>
-              <div className={styles.langButtons}>
-                {(productLangs.length > 0 ? productLangs : [{ code: 'en', name: 'English' }]).map(lang => {
-                  return (
-                    <button
-                      key={lang.code}
-                      onClick={() => { setSelectedLang(lang.code); setLangError(false); }}
-                      className={styles.langBtn}
-                      style={{
-                        border: `2px solid ${selectedLang === lang.code ? 'var(--color-text-primary)' : langError ? 'var(--color-error)' : 'var(--color-border)'}`,
-                        background: selectedLang === lang.code ? 'var(--color-text-primary)' : 'var(--color-white)',
-                        color: selectedLang === lang.code ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <span>{getLanguageDisplay(lang.code)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {langError && (
-                <p className={styles.langErrorText}>
-                  Please select a medium to continue
-                </p>
-              )}
-            </div>
-
-            {/* Quantity */}
-            <div className={styles.sectionBlock}>
-              <h3 className={styles.sectionLabel}>
-                Quantity
-              </h3>
-              <div className={styles.quantityWrap}>
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1}
-                  className={styles.qtyBtn}
-                  style={{ opacity: quantity <= 1 ? 0.4 : 1 }}
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </button>
-                <span className={styles.qtyVal}>
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className={styles.qtyBtn}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className={styles.actionRow}>
-              <button
-                onClick={handleAddToCart}
-                className={`btn btn-primary btn-lg ${styles.actionBtn}`}
-                style={{
-                  background: addedToCartSuccess ? '#10b981' : undefined,
-                  borderColor: addedToCartSuccess ? '#10b981' : undefined,
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {addedToCartSuccess ? '✓ Added to Cart!' : 'Add to Cart'}
-              </button>
-              <button onClick={handleBuyNow} className={`btn btn-accent btn-lg ${styles.actionBtn}`}>
-                Buy Now
-              </button>
-            </div>
-
-            <button onClick={handleWishlist} className={`btn btn-ghost ${styles.wishlistBtn}`}>
-              {inWishlist ? (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#E53935" stroke="#E53935" strokeWidth="1"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                  Remove from Wishlist
-                </>
-              ) : (
-                <>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                  Add to Wishlist
-                </>
-              )}
-            </button>
-
-            {/* Trust Strip */}
-            <div className={styles.trustStrip}>
-              <div className={styles.trustItem}>
-                <Truck size={18} color="var(--color-primary)" />
-                <span>Speed Post Delivery across India</span>
-              </div>
-              <div className={styles.trustItem}>
-                <ShieldCheck size={18} color="#10B981" />
-                <span>100% Secure UPI / Card Payment</span>
-              </div>
-              <div className={styles.trustItem}>
-                <PackageCheck size={18} color="var(--color-primary)" />
-                <span>Transit Damage Replacement</span>
-              </div>
-            </div>
-
-            {/* Support */}
-            <div className={styles.supportBox}>
-              <Mail size={18} color="var(--color-pastel-blue-deeper)" style={{ flexShrink: 0 }} />
-              <div>
-                <strong>Need help?</strong>{' '}
-                <a href="mailto:tenaliexampublishers@gmail.com" style={{ color: 'var(--color-pastel-blue-deeper)', fontWeight: 500 }}>
-                  tenaliexampublishers@gmail.com
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Sticky Buy Bar */}
-      <div className={styles.mobileStickyBar}>
-        <div className={styles.stickyPriceGroup}>
-          <div className={styles.stickyPrice}>{formatPrice(product.price)}</div>
-          <div className={styles.stickyMediumTag}>
-            {selectedLang ? `Medium: ${getLanguageDisplay(selectedLang)}` : 'Select Medium'}
-          </div>
-        </div>
-
-        <div className={styles.stickyActions}>
-          <button
-            onClick={handleAddToCart}
-            className={`btn btn-secondary ${styles.stickyCartBtn}`}
-            style={{
-              background: addedToCartSuccess ? '#10b981' : undefined,
-              color: addedToCartSuccess ? '#ffffff' : undefined,
-              borderColor: addedToCartSuccess ? '#10b981' : undefined,
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {addedToCartSuccess ? '✓ Added!' : '+ Cart'}
-          </button>
-          <button
-            onClick={handleBuyNow}
-            className={`btn btn-accent ${styles.stickyBuyBtn}`}
-          >
-            Buy Now
-          </button>
-        </div>
-      </div>
-
-      {/* Syllabus Modal */}
-      <SyllabusModal
-        productSlug={product.slug}
-        isOpen={isSyllabusOpen}
-        onClose={() => setIsSyllabusOpen(false)}
-      />
-    </div>
+    <>
+      <JsonLd data={productSchema} />
+      <JsonLd data={breadcrumbSchema} />
+      <ProductDetailClient initialProduct={product} slug={slug} />
+    </>
   );
 }
