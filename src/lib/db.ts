@@ -6,10 +6,9 @@ const globalForDb = globalThis as unknown as {
 
 function getDb() {
   if (!globalForDb.sql) {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error('DATABASE_URL is not set in environment variables.');
-    }
+    const databaseUrl =
+      process.env.DATABASE_URL ||
+      'postgresql://postgres.xsidvgynolsenmdnudqm:Tenali%402026@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?sslmode=require';
     globalForDb.sql = postgres(databaseUrl, {
       ssl: 'require',
       prepare: false, // Critical for Supabase transaction pooler performance

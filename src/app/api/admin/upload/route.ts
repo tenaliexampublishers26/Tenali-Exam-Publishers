@@ -4,16 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 // DO NOT instantiate supabase at module level — it crashes during Next.js build
 // when env vars are not yet available. Instantiate lazily inside the handler.
 function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xsidvgynolsenmdnudqm.supabase.co';
   const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    '';
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase environment variables are not configured.');
-  }
+    'sb_publishable_5MxH0Dpe3Ndj_r4abj9LPA_37VGnYZJ';
 
   return createClient(supabaseUrl, supabaseKey);
 }

@@ -246,8 +246,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 3. Open Razorpay checkout modal
-      const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+      const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_TX68FfdLjGMVlE';
 
       const options: RazorpayOptions = {
         key: razorpayKeyId,

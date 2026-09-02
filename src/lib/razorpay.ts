@@ -7,8 +7,8 @@ const globalForRazorpay = globalThis as unknown as {
 
 function getRazorpayInstance(): Razorpay {
   if (!globalForRazorpay.razorpay) {
-    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'dummy_key_id';
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || 'dummy_key_secret';
+    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || 'rzp_live_TX68FfdLjGMVlE';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || '64xfm8E1f7qVnRhKm4nFZEUt';
 
     globalForRazorpay.razorpay = new Razorpay({
       key_id: keyId,
@@ -42,11 +42,7 @@ export function verifyRazorpaySignature(
   razorpayPaymentId: string,
   razorpaySignature: string
 ): boolean {
-  const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
-  if (!keySecret) {
-    console.warn('RAZORPAY_KEY_SECRET is not configured for signature verification.');
-    return false;
-  }
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || '64xfm8E1f7qVnRhKm4nFZEUt';
   const body = `${razorpayOrderId}|${razorpayPaymentId}`;
   const expectedSignature = crypto
     .createHmac('sha256', keySecret)
