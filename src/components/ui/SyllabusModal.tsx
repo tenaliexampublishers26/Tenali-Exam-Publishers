@@ -1,7 +1,21 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { SYLLABUS_DATABASE, CadreSyllabus } from '@/lib/syllabusData';
-import { BookOpen, Search, CheckCircle2, Sparkles, X, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  BookOpen,
+  Search,
+  CheckCircle2,
+  FileText,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  Bookmark,
+  Info,
+  Mail,
+  Package,
+  FileSpreadsheet,
+} from 'lucide-react';
 import styles from './SyllabusModal.module.css';
 
 interface SyllabusModalProps {
@@ -11,11 +25,25 @@ interface SyllabusModalProps {
   initialCadreId?: string;
 }
 
+function getCadreIcon(id: string) {
+  switch (id) {
+    case 'mts':
+      return <BookOpen size={16} />;
+    case 'postman':
+      return <Mail size={16} />;
+    case 'mail-guard':
+      return <Package size={16} />;
+    case 'pa-sa-cadre':
+    default:
+      return <FileSpreadsheet size={16} />;
+  }
+}
+
 export default function SyllabusModal({
   productSlug,
   isOpen,
   onClose,
-  initialCadreId
+  initialCadreId,
 }: SyllabusModalProps): React.JSX.Element | null {
   const syllabusData = SYLLABUS_DATABASE[productSlug] || SYLLABUS_DATABASE['mts-postman-mg'];
   const cadres = syllabusData.cadres;
@@ -47,16 +75,15 @@ export default function SyllabusModal({
 
   if (!isOpen) return null;
 
-  const currentCadre: CadreSyllabus = cadres.find(c => c.id === activeCadreId) || cadres[0];
+  const currentCadre: CadreSyllabus = cadres.find((c) => c.id === activeCadreId) || cadres[0];
 
   const toggleSection = (idx: number) => {
-    setCollapsedSections(prev => ({ ...prev, [idx]: !prev[idx] }));
+    setCollapsedSections((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   return (
     <div className={styles.overlay} onClick={onClose} role="dialog" aria-modal="true">
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        
         {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerTitleGroup}>
@@ -80,10 +107,14 @@ export default function SyllabusModal({
             {cadres.map((c) => (
               <button
                 key={c.id}
-                onClick={() => { setActiveCadreId(c.id); setSearchTerm(''); setCollapsedSections({}); }}
+                onClick={() => {
+                  setActiveCadreId(c.id);
+                  setSearchTerm('');
+                  setCollapsedSections({});
+                }}
                 className={`${styles.tabBtn} ${activeCadreId === c.id ? styles.tabBtnActive : ''}`}
               >
-                <span>{c.icon}</span>
+                <span>{getCadreIcon(c.id)}</span>
                 <span>{c.cadreName}</span>
               </button>
             ))}
@@ -94,7 +125,9 @@ export default function SyllabusModal({
         <div className={styles.body}>
           {/* Focus Banner */}
           <div className={styles.focusBanner}>
-            <span className={styles.focusIcon}>🎯</span>
+            <span className={styles.focusIcon}>
+              <Target size={18} color="#2563eb" />
+            </span>
             <div className={styles.focusText}>
               <strong>{currentCadre.cadreName} Focus Area:</strong> {currentCadre.focus}
             </div>
@@ -102,7 +135,9 @@ export default function SyllabusModal({
 
           {/* Quick Search */}
           <div className={styles.searchBox}>
-            <span className={styles.searchIcon}>🔍</span>
+            <span className={styles.searchIcon}>
+              <Search size={16} color="#64748b" />
+            </span>
             <input
               type="text"
               placeholder={`Search topics in ${currentCadre.cadreName} syllabus...`}
@@ -116,10 +151,14 @@ export default function SyllabusModal({
           {currentCadre.sections.map((section, sIdx) => {
             const isCollapsed = collapsedSections[sIdx] === true;
 
-            const filteredTopics = section.topics.map(t => ({
-              ...t,
-              items: t.items.filter(item => item.toLowerCase().includes(searchTerm.toLowerCase()))
-            })).filter(t => t.items.length > 0);
+            const filteredTopics = section.topics
+              .map((t) => ({
+                ...t,
+                items: t.items.filter((item) =>
+                  item.toLowerCase().includes(searchTerm.toLowerCase())
+                ),
+              }))
+              .filter((t) => t.items.length > 0);
 
             if (searchTerm && filteredTopics.length === 0) return null;
 
@@ -127,17 +166,26 @@ export default function SyllabusModal({
               <div key={sIdx} className={styles.sectionCard}>
                 <div className={styles.sectionHeader} onClick={() => toggleSection(sIdx)}>
                   <div className="flex items-center gap-2">
-                    <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--color-text-muted)' }}>
+                    <button
+                      type="button"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 0,
+                        color: 'var(--color-text-muted)',
+                      }}
+                    >
                       {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                     </button>
                     <div>
                       <h3 className={styles.sectionTitle}>{section.title}</h3>
-                      {section.subtitle && <p className={styles.sectionSubtitle}>{section.subtitle}</p>}
+                      {section.subtitle && (
+                        <p className={styles.sectionSubtitle}>{section.subtitle}</p>
+                      )}
                     </div>
                   </div>
-                  {section.badge && (
-                    <span className={styles.sectionBadge}>{section.badge}</span>
-                  )}
+                  {section.badge && <span className={styles.sectionBadge}>{section.badge}</span>}
                 </div>
 
                 {!isCollapsed && (
@@ -145,7 +193,7 @@ export default function SyllabusModal({
                     {filteredTopics.map((group, gIdx) => (
                       <div key={gIdx} className={styles.topicGroup}>
                         <h4 className={styles.topicGroupTitle}>
-                          <Sparkles size={14} className="text-blue-500" />
+                          <FileText size={14} color="#2563eb" />
                           {group.title}
                         </h4>
                         <ul className={styles.itemList}>
@@ -166,14 +214,22 @@ export default function SyllabusModal({
 
           {/* Collapsible Quick Overview Tags (Placed at Bottom) */}
           <div className={styles.quickTagsWrap}>
-            <div
-              className={styles.quickTagsHeader}
-              onClick={() => setShowTags(!showTags)}
-            >
+            <div className={styles.quickTagsHeader} onClick={() => setShowTags(!showTags)}>
               <div className={styles.quickTagsTitle}>
-                <span>📌 {currentCadre.shortTag} Overview ({currentCadre.tags.length} Key Topics)</span>
+                <Bookmark size={15} color="#2563eb" style={{ display: 'inline', marginRight: '6px' }} />
+                <span>
+                  {currentCadre.shortTag} Overview ({currentCadre.tags.length} Key Topics)
+                </span>
               </div>
-              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+              <button
+                type="button"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                }}
+              >
                 {showTags ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
             </div>
@@ -194,7 +250,8 @@ export default function SyllabusModal({
         {/* Footer */}
         <div className={styles.footer}>
           <div className={styles.footerNote}>
-            💡 Aligned with latest Department of Posts syllabus guidelines.
+            <Info size={14} color="#2563eb" style={{ display: 'inline', marginRight: '6px' }} />
+            Aligned with latest Department of Posts syllabus guidelines.
           </div>
           <div className={styles.footerActions}>
             <button onClick={onClose} className={styles.dismissBtn}>
@@ -202,7 +259,6 @@ export default function SyllabusModal({
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

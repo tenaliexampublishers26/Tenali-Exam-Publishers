@@ -3,7 +3,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
-import { Lock, Mail, ShieldAlert, KeyRound, Sparkles, Eye, EyeOff, Phone } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, KeyRound, Eye, EyeOff, Phone } from 'lucide-react';
 
 function LoginContent() {
   const router = useRouter();

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { formatPrice, getLanguageDisplay } from '@/lib/utils';
 import { DELIVERY_CHARGE, ORIGINAL_DELIVERY_CHARGE } from '@/lib/data';
-import { ShoppingBag, Sparkles, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Truck, Lock, ArrowLeft } from 'lucide-react';
 import styles from './cart.module.css';
 
 export default function CartPage() {
@@ -200,7 +200,7 @@ export default function CartPage() {
                 </div>
               </div>
               <div className={styles.freeDeliveryBanner} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={16} color="var(--color-primary)" />
+                <Truck size={16} color="var(--color-primary)" />
                 <span><strong>Special Offer:</strong> Free Postal Delivery Applied!</span>
               </div>
               <hr className="divider" style={{ margin: '4px 0' }} />
@@ -213,9 +213,10 @@ export default function CartPage() {
             <button
               onClick={handleProceedToCheckout}
               className={`btn btn-primary btn-lg ${styles.checkoutBtn}`}
-              style={{ width: '100%', justifyContent: 'center' }}
+              style={{ width: '100%', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
             >
-              {isAuthenticated ? 'Proceed to Checkout →' : 'Sign In & Proceed to Checkout 🔒'}
+              <span>{isAuthenticated ? 'Proceed to Checkout →' : 'Sign In & Proceed to Checkout'}</span>
+              {!isAuthenticated && <Lock size={15} />}
             </button>
 
             <Link href="/study-materials" className={`btn btn-ghost ${styles.continueBtn}`}>

@@ -12,7 +12,6 @@ import {
   Activity,
   User,
   ArrowUpRight,
-  Sparkles,
   Calendar,
   Layers,
   Percent,
@@ -159,7 +158,7 @@ export default function AdminDashboardPage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 text-slate-500 dark:text-slate-50 font-bold text-xs uppercase tracking-widest mb-2">
-              <Sparkles size={14} className="animate-pulse text-slate-500 dark:text-slate-50" />
+              <Activity size={14} className="text-slate-500 dark:text-slate-50" />
               Publisher Portal Control Center
             </div>
             <h1 className="text-3xl font-black tracking-tight text-slate-800 dark:text-slate-50 sm:text-4xl">

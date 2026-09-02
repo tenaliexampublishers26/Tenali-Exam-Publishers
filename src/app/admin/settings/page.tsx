@@ -9,7 +9,7 @@ import {
   Loader2, 
   Radio, 
   BellRing, 
-  Sparkles, 
+  Bookmark, 
   ExternalLink,
   Sliders,
   Eye,
@@ -30,17 +30,17 @@ interface LiveNotificationState {
 const TEMPLATES = [
   {
     badge: 'FLASH UPDATE',
-    text: '📢 Welcome postal aspirants! Latest 2026 Edition LDCE Guides for MTS, Postman & PA/SA are now available in all mediums.',
+    text: 'Welcome postal aspirants! Latest 2026 Edition LDCE Guides for MTS, Postman & PA/SA are now available in all mediums.',
     link: '#books'
   },
   {
     badge: 'FREE DELIVERY',
-    text: '⚡ Free Shipping across all Postal Circles in India on orders of 2 or more LDCE exam guide books!',
+    text: 'Free Shipping across all Postal Circles in India on orders of 2 or more LDCE exam guide books!',
     link: '#books'
   },
   {
     badge: 'NEW SYLLABUS',
-    text: '🎯 100% Updated Postal Manual Volume V, VI & VII Notes & Objective Question Banks Ready for 2026 Exams.',
+    text: '100% Updated Postal Manual Volume V, VI & VII Notes & Objective Question Banks Ready for 2026 Exams.',
     link: '/study-materials'
   }
 ];
@@ -232,7 +232,7 @@ export default function AdminSettingsPage() {
           {/* Quick Presets */}
           <div className="space-y-2">
             <span className="text-xs font-bold text-(--color-text-secondary) uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles size={14} className="text-amber-500" /> Quick Message Presets
+              <Bookmark size={14} className="text-amber-500" /> Quick Message Presets
             </span>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               {TEMPLATES.map((tmpl, idx) => (

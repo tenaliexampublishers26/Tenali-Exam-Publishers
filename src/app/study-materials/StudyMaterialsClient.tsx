@@ -3,6 +3,7 @@ import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useProducts } from '@/hooks/useProducts';
 import ProductCard from '@/components/ui/ProductCard';
+import { Check } from 'lucide-react';
 import styles from './study-materials.module.css';
 
 interface ExamItem {
@@ -119,7 +120,14 @@ function StudyMaterialsContent() {
               }}
               aria-pressed={isSelected}
             >
-              {isSelected ? `✓ ${item.name}` : item.name}
+              {isSelected ? (
+                <>
+                  <Check size={14} style={{ marginRight: '4px' }} />
+                  <span>{item.name}</span>
+                </>
+              ) : (
+                item.name
+              )}
             </button>
           );
         })}

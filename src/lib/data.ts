@@ -92,8 +92,8 @@ export const DELIVERY_CHARGE = 0;
 export const ORIGINAL_DELIVERY_CHARGE = 70;
 
 export const ORDER_STATUSES: { key: OrderStatus; label: string; icon: string }[] = [
-  { key: 'placed', label: 'Order Placed', icon: '📦' },
-  { key: 'dispatched', label: 'Dispatched', icon: '🚚' },
+  { key: 'placed', label: 'Order Placed', icon: 'Package' },
+  { key: 'dispatched', label: 'Dispatched', icon: 'Truck' },
 ];
 
 export const PAYMENT_STATUSES: Record<PaymentStatus, { label: string; color: string }> = {

@@ -4,7 +4,7 @@ import { useWishlist } from '@/contexts/WishlistContext';
 import { useToast } from '@/contexts/ToastContext';
 import { formatPrice } from '@/lib/utils';
 import { Product } from '@/types';
-import { Heart, BookOpen, ArrowRight, Globe, Sparkles } from 'lucide-react';
+import { Heart, BookOpen, ArrowRight, Globe, Award } from 'lucide-react';
 import styles from './ProductCard.module.css';
 
 interface ProductCardProps {
@@ -43,7 +43,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Premium Badge Overlay */}
         {product.badge && (
           <span className={styles.badgeOverlay}>
-            <Sparkles size={11} className={styles.sparkleIcon} />
+            <Award size={11} className={styles.sparkleIcon} />
             {product.badge}
           </span>
         )}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import OrderTimeline from '@/components/ui/OrderTimeline';
 import { formatPrice } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { FileText } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -60,7 +61,8 @@ export default function OrderDetailPage({ params }: PageProps): React.JSX.Elemen
           color: '#ffffff', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '6px 14px', fontSize: '0.8rem',
           textDecoration: 'none',
         }}>
-          📄 Download Invoice
+          <FileText size={14} />
+          <span>Download Invoice</span>
         </Link>
       </div>
 

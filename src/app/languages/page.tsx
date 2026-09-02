@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BookOpen, Languages, BookMarked } from 'lucide-react';
 import { SITE_NAME, SITE_URL, getBreadcrumbSchema } from '@/lib/seo';
 import JsonLd from '@/components/seo/JsonLd';
 
@@ -33,7 +34,7 @@ interface LanguageOption {
   native: string;
   desc: string;
   bg: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const LANGUAGES: LanguageOption[] = [
@@ -43,7 +44,7 @@ const LANGUAGES: LanguageOption[] = [
     native: 'English',
     desc: 'Official syllabus-aligned study guides with concept notes & MCQs in English medium',
     bg: '#D4E4F7',
-    icon: '📘',
+    icon: <BookOpen size={32} color="#1e40af" />,
   },
   {
     code: 'te',
@@ -51,7 +52,7 @@ const LANGUAGES: LanguageOption[] = [
     native: 'తెలుగు మాధ్యమం',
     desc: 'తపాలా శాఖ పరీక్షల కోసం సమగ్ర స్టడీ మెటీరియల్స్ మరియు గైడ్లు',
     bg: '#E8E0F0',
-    icon: '📗',
+    icon: <Languages size={32} color="#6b21a8" />,
   },
   {
     code: 'hi',
@@ -59,7 +60,7 @@ const LANGUAGES: LanguageOption[] = [
     native: 'हिंदी माध्यम',
     desc: 'डाक विभाग प्रतियोगी परीक्षाओं हेतु संपूर्ण अध्ययन सामग्री एवं गाइड',
     bg: '#FDDEC0',
-    icon: '📙',
+    icon: <BookMarked size={32} color="#c2410c" />,
   },
 ];
 
@@ -117,9 +118,7 @@ export default function LanguagesPage(): React.JSX.Element {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '2rem',
                 }}
-                aria-hidden="true"
               >
                 {lang.icon}
               </div>

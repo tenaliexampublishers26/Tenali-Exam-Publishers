@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Target, Compass, UserCheck, BookOpen, Languages, Truck } from 'lucide-react';
 import { SUPPORT_EMAIL, COMPANY_ADDRESS } from '@/lib/data';
 import { SITE_NAME, SITE_URL, getBreadcrumbSchema } from '@/lib/seo';
 import JsonLd from '@/components/seo/JsonLd';
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 interface OfferItem {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   desc: string;
 }
@@ -61,6 +62,24 @@ export default function AboutPage(): React.JSX.Element {
     },
   };
 
+  const offerItems: OfferItem[] = [
+    {
+      icon: <BookOpen size={30} color="var(--color-primary)" />,
+      title: 'Latest Syllabus Guides',
+      desc: 'Aligned with official India Post LDCE exam patterns and updated administrative rules.',
+    },
+    {
+      icon: <Languages size={30} color="var(--color-primary)" />,
+      title: 'Multilingual Study Books',
+      desc: 'Comprehensive materials available in English, Telugu (తెలుగు), and Hindi (हिंदी).',
+    },
+    {
+      icon: <Truck size={30} color="var(--color-primary)" />,
+      title: 'Doorstep Speed Post Delivery',
+      desc: 'Secure dispatch across India to every district, city, and rural branch post office.',
+    },
+  ];
+
   return (
     <div style={{ paddingBottom: '80px' }}>
       <JsonLd data={breadcrumbSchema} />
@@ -77,8 +96,19 @@ export default function AboutPage(): React.JSX.Element {
         {/* Mission & Vision */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12" aria-label="Mission and Vision">
           <div className="card p-6 md:p-8">
-            <div style={{ fontSize: '2rem', marginBottom: '16px' }} aria-hidden="true">
-              🎯
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                background: 'rgba(26, 43, 76, 0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+              }}
+            >
+              <Target size={28} color="var(--color-primary)" />
             </div>
             <h2
               style={{
@@ -102,8 +132,19 @@ export default function AboutPage(): React.JSX.Element {
             </p>
           </div>
           <div className="card p-6 md:p-8">
-            <div style={{ fontSize: '2rem', marginBottom: '16px' }} aria-hidden="true">
-              🌟
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                background: 'rgba(26, 43, 76, 0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+              }}
+            >
+              <Compass size={28} color="var(--color-primary)" />
             </div>
             <h2
               style={{
@@ -132,21 +173,19 @@ export default function AboutPage(): React.JSX.Element {
         <article className="card p-6 md:p-12 mb-12 text-center" aria-label="Founder and Publisher Information">
           <div
             style={{
-              width: '120px',
-              height: '120px',
+              width: '100px',
+              height: '100px',
               borderRadius: '50%',
               background: 'var(--color-pastel-blue)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 24px',
-              fontSize: '3rem',
               border: '4px solid var(--color-white)',
               boxShadow: 'var(--shadow-md)',
             }}
-            aria-hidden="true"
           >
-            👨‍💼
+            <UserCheck size={44} color="var(--color-primary)" />
           </div>
 
           <h2
@@ -192,27 +231,20 @@ export default function AboutPage(): React.JSX.Element {
             What We Offer
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {(
-              [
-                {
-                  icon: '📚',
-                  title: 'Latest Syllabus Guides',
-                  desc: 'Aligned with official India Post LDCE exam patterns and updated administrative rules.',
-                },
-                {
-                  icon: '🌐',
-                  title: 'Multilingual Study Books',
-                  desc: 'Comprehensive materials available in English, Telugu (తెలుగు), and Hindi (हिंदी).',
-                },
-                {
-                  icon: '📦',
-                  title: 'Doorstep Speed Post Delivery',
-                  desc: 'Secure dispatch across India to every district, city, and rural branch post office.',
-                },
-              ] as OfferItem[]
-            ).map((item, i) => (
+            {offerItems.map((item, i) => (
               <div key={i} className="card p-6 text-center">
-                <div style={{ fontSize: '1.8rem', marginBottom: '12px' }} aria-hidden="true">
+                <div
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '12px',
+                    background: 'rgba(26, 43, 76, 0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 14px',
+                  }}
+                >
                   {item.icon}
                 </div>
                 <h3

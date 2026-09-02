@@ -16,7 +16,8 @@ import {
   Building2,
   Phone,
   Mail,
-  FileText
+  FileText,
+  Globe
 } from 'lucide-react';
 
 interface OrderItem {
@@ -255,8 +256,12 @@ export default function InvoicePage(): React.JSX.Element {
                 <div>Main Road, Near Head Post Office</div>
                 <div>Tenali, Guntur District, Andhra Pradesh - 522201</div>
                 <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span>📱 Phone: {COMPANY_PHONE}</span>
-                  <span>✉️ Email: {SUPPORT_EMAIL}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Phone size={12} /> Phone: {COMPANY_PHONE}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Mail size={12} /> Email: {SUPPORT_EMAIL}
+                  </span>
                 </div>
                 <div style={{ marginTop: '4px', fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8' }}>
                   GSTIN / HSN STATUS: <span style={{ color: '#60a5fa' }}>EXEMPTED (Educational Printed Books under HSN 4901)</span>
@@ -342,12 +347,12 @@ export default function InvoicePage(): React.JSX.Element {
                 <div>{addr.houseOrFlat}, {addr.street}</div>
                 {addr.area && <div>{addr.area}</div>}
                 <div>{addr.city}, {addr.state} - <strong style={{ color: '#0f172a' }}>{addr.pinCode}</strong></div>
-                <div style={{ marginTop: '6px', fontWeight: 600, color: '#334155' }}>
-                  📱 Phone: {addr.mobile}
+                <div style={{ marginTop: '6px', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Phone size={13} /> Phone: {addr.mobile}
                 </div>
                 {addr.email && (
-                  <div style={{ fontWeight: 600, color: '#334155' }}>
-                    ✉️ Email: {addr.email}
+                  <div style={{ fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <Mail size={13} /> Email: {addr.email}
                   </div>
                 )}
               </div>
@@ -580,9 +585,15 @@ export default function InvoicePage(): React.JSX.Element {
                 <div style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.68rem', marginBottom: '6px', color: '#334155' }}>
                   Customer Support
                 </div>
-                <div>📱 Phone: {COMPANY_PHONE}</div>
-                <div>✉️ Email: {SUPPORT_EMAIL}</div>
-                <div>🌐 www.tenaliexamspublishers.com</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Phone size={12} /> Phone: {COMPANY_PHONE}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Mail size={12} /> Email: {SUPPORT_EMAIL}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Globe size={12} /> www.tenaliexamspublishers.com
+                </div>
               </div>
 
               {/* Digital Seal Stamp Box */}

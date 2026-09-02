@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useProducts } from '@/hooks/useProducts';
 import { formatPrice } from '@/lib/utils';
 import { Product } from '@/types';
+import { Search } from 'lucide-react';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -212,7 +213,9 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             ))
           ) : query ? (
             <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                <Search size={32} color="var(--color-text-muted)" />
+              </div>
               <p style={{ fontSize: '0.9rem' }}>No study materials found for &ldquo;{query}&rdquo;</p>
             </div>
           ) : (

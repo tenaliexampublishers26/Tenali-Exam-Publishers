@@ -9,6 +9,7 @@ import {
 } from '@/lib/data';
 import { isValidEmail, isValidMobile } from '@/lib/utils';
 import { useToast } from '@/contexts/ToastContext';
+import { CheckCircle2 } from 'lucide-react';
 import styles from './ContactSection.module.css';
 
 interface ContactForm {
@@ -158,7 +159,9 @@ export default function ContactSection(): React.JSX.Element {
 
               {submitted ? (
                 <div className={styles.successBox}>
-                  <div className={styles.successIcon}>✅</div>
+                  <div className={styles.successIcon}>
+                    <CheckCircle2 size={44} color="#10b981" />
+                  </div>
                   <h4 className={styles.successHeading}>Enquiry Submitted Successfully!</h4>
                   <p className={styles.successText}>
                     Thank you for reaching out to Tenali Exams Publishers. Our support team will review your query and contact you at <strong>{form.phone}</strong> shortly.

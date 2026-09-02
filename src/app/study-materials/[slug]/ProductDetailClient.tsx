@@ -63,7 +63,9 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
         >
           <ArrowLeft size={16} /> Home
         </Link>
-        <div style={{ fontSize: '4rem', marginBottom: '16px' }}>📖</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <BookOpen size={56} color="var(--color-text-muted)" />
+        </div>
         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '8px' }}>
           Product Not Found
         </h1>

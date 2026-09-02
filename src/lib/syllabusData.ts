@@ -36,7 +36,7 @@ export const SYLLABUS_DATABASE: Record<string, ProductSyllabusData> = {
         id: 'mts',
         cadreName: 'MTS (Multi Tasking Staff)',
         shortTag: 'MTS Syllabus',
-        icon: '📚',
+        icon: 'book',
         focus: 'Postal Knowledge + General Knowledge + Mathematics',
         tags: [
           'Post Office Guide Part-I', 'Postal Rules', 'Post Offices', 'Postage & Stamps', 
@@ -118,7 +118,7 @@ export const SYLLABUS_DATABASE: Record<string, ProductSyllabusData> = {
         id: 'postman',
         cadreName: 'POSTMAN',
         shortTag: 'Postman Syllabus',
-        icon: '📮',
+        icon: 'mail',
         focus: 'Postal Knowledge + GK + Mathematics + Practical Postal Operations + Mail Delivery Procedures',
         tags: [
           'Post Office Guide Part-I', 'General Knowledge', 'Mathematics', 'Postal Operations', 
@@ -227,7 +227,7 @@ export const SYLLABUS_DATABASE: Record<string, ProductSyllabusData> = {
         id: 'mail-guard',
         cadreName: 'MAIL GUARD (MG)',
         shortTag: 'Mail Guard (MG) Syllabus',
-        icon: '📦',
+        icon: 'package',
         focus: 'Postal Knowledge + GK + Mathematics + Mail Handling + Transit Mail Operations + Postal Manual Procedures',
         tags: [
           'Post Office Guide Part-I', 'General Knowledge', 'Mathematics', 'Postal Operations', 
@@ -317,7 +317,7 @@ export const SYLLABUS_DATABASE: Record<string, ProductSyllabusData> = {
         id: 'pa-sa-cadre',
         cadreName: 'PA & SA (Postal Assistant & Sorting Assistant)',
         shortTag: 'PA & SA Complete Syllabus',
-        icon: '📘',
+        icon: 'file-spreadsheet',
         focus: 'Departmental Rules + General Knowledge + Mathematics + Reasoning & Analytical Ability + DEST Skill Test',
         tags: [
           'PA & SA Complete Syllabus', 'Departmental Rules', 'Post Office Guide Part I & II',

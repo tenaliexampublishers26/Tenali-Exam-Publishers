@@ -9,7 +9,6 @@ import {
   AlertCircle,
   XCircle,
   RotateCcw,
-  Sparkles,
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 

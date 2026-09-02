@@ -92,7 +92,7 @@ export default function LiveNotificationMarquee({ initialSettings }: LiveNotific
             View Details &rarr;
           </span>
         )}
-        <span className={styles.bulletDot}>✦</span>
+        <span className={styles.bulletDot}>•</span>
       </>
     );
 

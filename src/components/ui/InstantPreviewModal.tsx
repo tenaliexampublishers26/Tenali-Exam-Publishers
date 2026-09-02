@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Product } from '@/types';
+import { X, FileText, BookOpen, Info, Check } from 'lucide-react';
 import styles from './InstantPreviewModal.module.css';
 
 interface InstantPreviewModalProps {
@@ -40,7 +41,7 @@ export default function InstantPreviewModal({ product, isOpen, onClose }: Instan
             <h2 className={styles.title}>{product.name} — {product.bundleTitle}</h2>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -49,14 +50,18 @@ export default function InstantPreviewModal({ product, isOpen, onClose }: Instan
           <button
             className={`${styles.tabBtn} ${activeTab === 'toc' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('toc')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
-            📋 Table of Contents &amp; Syllabus
+            <FileText size={16} />
+            <span>Table of Contents &amp; Syllabus</span>
           </button>
           <button
             className={`${styles.tabBtn} ${activeTab === 'sample' ? styles.tabActive : ''}`}
             onClick={() => setActiveTab('sample')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
           >
-            📖 Sample Concept Pages &amp; MCQs
+            <BookOpen size={16} />
+            <span>Sample Concept Pages &amp; MCQs</span>
           </button>
         </div>
 
@@ -76,7 +81,9 @@ export default function InstantPreviewModal({ product, isOpen, onClose }: Instan
                   <ul className={styles.chapterList}>
                     {book.chapters.map((ch, cIdx) => (
                       <li key={cIdx} className={styles.chapterItem}>
-                        <span className={styles.checkIcon}>✓</span>
+                        <span className={styles.checkIcon}>
+                          <Check size={14} color="#10b981" />
+                        </span>
                         <span>{ch}</span>
                       </li>
                     ))}
@@ -87,7 +94,9 @@ export default function InstantPreviewModal({ product, isOpen, onClose }: Instan
           ) : (
             <div className={styles.sampleContainer}>
               <div className={styles.sampleNotice}>
-                <span className={styles.noticeIcon}>💡</span>
+                <span className={styles.noticeIcon}>
+                  <Info size={20} color="#2563eb" />
+                </span>
                 <div>
                   <strong>Concept-Based Visual Format</strong>
                   <p>All chapters feature structured comparison tables, rule summaries, bilingual Telugu/English terminology notes, and key exam question callouts.</p>
