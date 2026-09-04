@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import ClientLayout from './ClientLayout';
 import JsonLd from '@/components/seo/JsonLd';
+import GoogleAnalytics from '@/components/seo/GoogleAnalytics';
 import {
   SITE_URL,
   SITE_NAME,
@@ -101,6 +102,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <ClientLayout>{children}</ClientLayout>
+        <GoogleAnalytics />
       </body>
     </html>
   );
