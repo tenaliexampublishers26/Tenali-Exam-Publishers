@@ -52,23 +52,7 @@ export default function AccountLayout({ children }: { children: ReactNode }): Re
     <div className={s.pageWrap}>
       <div className="container px-4 md:px-6">
 
-        {/* ── Mobile Glassmorphic Tab Bar ────────────────── */}
-        <nav className={`${s.mobileTabBar} ${s.mobileOnly}`} aria-label="Account navigation">
-          {MENU.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                prefetch={true}
-                className={`${s.mobileTab} ${isActive ? s.mobileTabActive : ''}`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+
 
         {/* ── Desktop Grid ────────────────────────────────── */}
         <div
