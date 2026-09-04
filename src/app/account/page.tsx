@@ -21,12 +21,13 @@ import {
   Lock,
   CheckCircle2,
   X as XIcon,
+  LogOut,
 } from 'lucide-react';
 import { fetchWithCache, getCachedData } from '@/lib/api-cache';
 import s from './profile.module.css';
 
 export default function AccountPage(): React.JSX.Element {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const { items: wishlistItems } = useWishlist();
   const toast = useToast();
 
@@ -405,6 +406,42 @@ export default function AccountPage(): React.JSX.Element {
         </div>
 
       </div>
+
+      {/* ── Sign Out ─────────────────────────────────────── */}
+      <div className={s.glassCard} style={{ marginTop: '8px' }}>
+        <button
+          type="button"
+          onClick={logout}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            width: '100%',
+            padding: '16px 20px',
+            fontFamily: 'var(--font-heading)',
+            fontSize: '0.9375rem',
+            fontWeight: 700,
+            color: '#dc2626',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            letterSpacing: '-0.005em',
+            transition: 'background var(--transition-fast), transform var(--duration-press) var(--ease-spring-snappy)',
+            borderRadius: '24px',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(220,38,38,0.06)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+          onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+          aria-label="Sign out of your account"
+        >
+          <LogOut size={18} />
+          Sign Out of Account
+        </button>
+      </div>
+
     </div>
   );
 }
