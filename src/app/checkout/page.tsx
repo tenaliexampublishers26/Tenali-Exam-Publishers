@@ -228,19 +228,49 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 2. Create a Razorpay order on the server
+      // 2. Create a Razorpay order on the server — the server recomputes the
+      // total from live prices and validates stock; it does not trust the
+      // client-calculated `total` below.
       const orderRes = await fetch('/api/payment/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: total,
+          items: items.map(item => ({
+            productId: item.productId,
+            language: item.language,
+            quantity: item.quantity,
+          })),
           currency: 'INR',
           receipt: `tep_${Date.now()}`,
         }),
       });
 
       const orderData = await orderRes.json();
-      if (!orderData.success || !orderData.orderId) {
+
+      if (!orderRes.ok || !orderData.success) {
+        if (orderRes.status === 409 && Array.isArray(orderData.stockIssues) && orderData.stockIssues.length > 0) {
+          const names = orderData.stockIssues.map((i: any) => i.productName).join(', ');
+          toast.error(`Sorry, some items just went out of stock: ${names}. Please update your cart.`);
+          setLoading(false);
+          router.push('/cart');
+          return;
+        }
+        toast.error(orderData.error || 'Could not initiate payment. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // If the live price differs from what the cart showed (e.g. an admin
+      // changed a price while this tab was open), let the customer know
+      // before their card is charged rather than silently using either figure.
+      if (typeof orderData.total === 'number' && Math.abs(orderData.total - total) > 0.5) {
+        toast.error('Prices were just updated. Please review your cart before paying again.');
+        setLoading(false);
+        router.push('/cart');
+        return;
+      }
+
+      if (!orderData.orderId) {
         toast.error('Could not initiate payment. Please try again.');
         setLoading(false);
         return;

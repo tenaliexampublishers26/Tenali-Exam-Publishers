@@ -1,15 +1,20 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'motion/react';
 import { formatPrice } from '@/lib/utils';
 import { Package, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
+import { AdminPageHeader, AdminTableRow, AdminConfirmDialog, SPRING_PRESS } from '@/components/admin/AdminUI';
 
 export default function AdminProductsPage() {
   const cachedInitial = getCachedData('/api/admin/products');
   const [products, setProducts] = useState<any[]>(cachedInitial ? cachedInitial.products || [] : []);
   const [loading, setLoading] = useState(!cachedInitial);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const toast = useToast();
 
   const fetchProducts = async (force = false) => {
@@ -21,6 +26,7 @@ export default function AdminProductsPage() {
       toast.error('Failed to load products');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -28,19 +34,23 @@ export default function AdminProductsPage() {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (productId: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/products/${productId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/products/${pendingDelete.id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Product deleted');
         invalidateCache('/api/admin');
-        setProducts(prev => prev.filter(p => p.id !== productId));
+        setProducts(prev => prev.filter(p => p.id !== pendingDelete.id));
+        setPendingDelete(null);
       } else {
         toast.error('Failed to delete product');
       }
     } catch (err) {
       toast.error('Failed to delete product');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -55,27 +65,37 @@ export default function AdminProductsPage() {
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
-      <div className="admin-page-header">
-        <div>
-          <h2 className="admin-page-title">
-            <Package size={24} />
-            Manage Products
-          </h2>
-          <p className="admin-page-desc">Create, update, or remove items from your store catalog</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => { setLoading(true); fetchProducts(); }} className="btn btn-ghost btn-sm">
-            <RefreshCw size={16} />
-          </button>
-          <Link href="/admin/products/add" className="btn btn-primary btn-sm md:btn-md">
-            <Plus size={16} /> Add Product
-          </Link>
-        </div>
-      </div>
+      <AdminPageHeader
+        icon={<Package size={24} />}
+        title="Manage Products"
+        description="Create, update, or remove items from your store catalog"
+        actions={
+          <>
+            <motion.button
+              onClick={() => { setRefreshing(true); fetchProducts(true); }}
+              whileTap={{ scale: 0.92, rotate: 180 }}
+              transition={SPRING_PRESS}
+              className="btn btn-ghost btn-sm"
+              aria-label="Refresh products"
+            >
+              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            </motion.button>
+            <motion.div whileTap={{ scale: 0.96 }} transition={SPRING_PRESS}>
+              <Link href="/admin/products/add" className="btn btn-primary btn-sm md:btn-md">
+                <Plus size={16} /> Add Product
+              </Link>
+            </motion.div>
+          </>
+        }
+      />
 
       {/* Grid Container */}
-      <div className="admin-card">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', bounce: 0, duration: 0.4, delay: 0.05 }}
+        className="admin-card"
+      >
         {products.length === 0 ? (
           <div className="admin-empty">
             <div className="admin-empty__icon">
@@ -101,8 +121,8 @@ export default function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
+                {products.map((product, index) => (
+                  <AdminTableRow key={product.id} index={index}>
                     <td>
                       <div className="col-primary">{product.id}</div>
                       <div className="col-muted">{product.slug}</div>
@@ -140,29 +160,39 @@ export default function AdminProductsPage() {
                     </td>
                     <td>
                       <div className="flex justify-end gap-2">
-                        <Link 
-                          href={`/admin/products/${product.id}`} 
-                          className="admin-action-btn admin-action-btn--edit"
-                          title="Edit Product"
-                        >
-                          <Edit size={16} />
-                        </Link>
-                        <button 
-                          onClick={() => handleDelete(product.id)} 
+                        <motion.div whileTap={{ scale: 0.9 }} transition={SPRING_PRESS} className="admin-action-btn admin-action-btn--edit" style={{ padding: 0 }}>
+                          <Link href={`/admin/products/${product.id}`} className="flex items-center justify-center w-full h-full px-2 py-1.5" title="Edit Product">
+                            <Edit size={16} />
+                          </Link>
+                        </motion.div>
+                        <motion.button
+                          onClick={() => setPendingDelete(product)}
+                          whileTap={{ scale: 0.9 }}
+                          transition={SPRING_PRESS}
                           className="admin-action-btn admin-action-btn--delete"
                           title="Delete Product"
                         >
                           <Trash2 size={16} />
-                        </button>
+                        </motion.button>
                       </div>
                     </td>
-                  </tr>
+                  </AdminTableRow>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </motion.div>
+
+      <AdminConfirmDialog
+        open={!!pendingDelete}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete this product?"
+        description={pendingDelete ? `"${pendingDelete.name}" will be permanently removed from your catalog. This cannot be undone.` : ''}
+        confirmLabel="Delete Product"
+      />
     </div>
   );
 }

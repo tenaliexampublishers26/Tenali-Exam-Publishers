@@ -117,6 +117,12 @@ export async function POST(request: Request) {
       const productId = item.productId || item.id;
       const quantity = item.quantity || 1;
 
+      // Look up the product once — used both to record the authoritative
+      // (server-side) price actually charged and to decrement stock. We do
+      // not trust item.price from the client for the historical record.
+      const productRows = await sql`SELECT price, languages, stock FROM products WHERE id = ${productId}`;
+      const chargedPrice = productRows.length > 0 ? parseFloat(productRows[0].price) : item.price;
+
       await sql`
         INSERT INTO order_items (
           order_id, product_id, product_name, product_slug,
@@ -127,7 +133,7 @@ export async function POST(request: Request) {
           ${item.productName || item.name},
           ${item.productSlug || item.slug || 'mts-postman-mg'},
           ${item.productImage || item.image || '/images/book-mts-postman.jpg'},
-          ${item.price},
+          ${chargedPrice},
           ${item.language || 'English'},
           ${quantity},
           ${item.bundleTitle || null},
@@ -136,7 +142,6 @@ export async function POST(request: Request) {
       `;
 
       // Decrement stock
-      const productRows = await sql`SELECT languages, stock FROM products WHERE id = ${productId}`;
       if (productRows.length > 0) {
         let currentLanguages = productRows[0].languages;
         let currentStock = parseInt(productRows[0].stock || '0');

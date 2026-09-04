@@ -11,6 +11,12 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// This page is statically generated per-slug (generateStaticParams below).
+// ISR keeps that static shell from going permanently stale between deploys —
+// the client component still fetches live data on top of this for anything
+// price/stock sensitive (see ProductDetailClient).
+export const revalidate = 300;
+
 async function fetchProductData(slug: string): Promise<Product | null> {
   const querySlug = slug === 'pa-sa-lgo' ? 'pa-sa' : slug;
 

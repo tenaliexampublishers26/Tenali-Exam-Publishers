@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { formatPrice } from '@/lib/utils';
-import { ShoppingCart, Package, RefreshCw, Copy, Check, Search, Calendar as CalendarIcon, Eye, X, Filter, Download, Printer } from 'lucide-react';
+import { ShoppingCart, Package, RefreshCw, Copy, Check, Search, Calendar as CalendarIcon, Eye, X, Filter, Download, Printer, Truck } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import PostalSlipCard from '@/components/admin/PostalSlipCard';
+import { AdminTableRow, AdminModal, SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
 
 import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
 
@@ -19,6 +21,8 @@ export default function AdminOrdersPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [detailsModalOrder, setDetailsModalOrder] = useState<any | null>(null);
+  const [trackingInput, setTrackingInput] = useState('');
+  const [savingTracking, setSavingTracking] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const downloadRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
@@ -105,6 +109,37 @@ export default function AdminOrdersPage() {
       }
     } catch (err) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleSaveTracking = async (orderId: string) => {
+    const trimmed = trackingInput.trim();
+    if (!trimmed) {
+      toast.error('Enter a tracking ID before saving');
+      return;
+    }
+    setSavingTracking(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackingNumber: trimmed, carrier: 'India Post Speed Post' })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        const dispatchedAt = data.order?.dispatchedAt;
+        toast.success('Tracking ID saved — visible to the customer now');
+        invalidateCache('/api/admin');
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, trackingNumber: trimmed, carrier: 'India Post Speed Post', dispatchedAt: dispatchedAt ?? o.dispatchedAt } : o));
+        setDetailsModalOrder((prev: any) => prev && prev.id === orderId ? { ...prev, trackingNumber: trimmed, carrier: 'India Post Speed Post', dispatchedAt: dispatchedAt ?? prev.dispatchedAt } : prev);
+      } else {
+        toast.error(data.error || 'Failed to save tracking ID');
+      }
+    } catch (err) {
+      toast.error('Failed to save tracking ID');
+    } finally {
+      setSavingTracking(false);
     }
   };
 
@@ -318,7 +353,12 @@ export default function AdminOrdersPage() {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="admin-page-header flex-col md:flex-row gap-4 md:items-center items-start">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING_UI}
+        className="admin-page-header flex-col md:flex-row gap-4 md:items-center items-start"
+      >
         <div>
           <h2 className="admin-page-title">
             <ShoppingCart size={24} />
@@ -453,7 +493,7 @@ export default function AdminOrdersPage() {
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Category Wise Status Tabs */}
       <div 
@@ -568,9 +608,20 @@ export default function AdminOrdersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order) => (
-                      <tr key={order.id}>
-                        <td className="col-primary">{order.orderNumber}</td>
+                    {filteredOrders.map((order, index) => (
+                      <AdminTableRow key={order.id} index={index}>
+                        <td className="col-primary">
+                          {order.orderNumber}
+                          {order.trackingNumber ? (
+                            <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-(--color-success) bg-(--color-success-bg) px-1.5 py-0.5 rounded">
+                              Tracked
+                            </div>
+                          ) : (
+                            <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-(--color-text-muted)">
+                              No tracking ID
+                            </div>
+                          )}
+                        </td>
                         <td className="col-muted">{new Date(order.createdAt).toLocaleDateString()}</td>
                         <td>
                           <div className="col-primary">{order.userName || 'Guest'}</div>
@@ -591,12 +642,14 @@ export default function AdminOrdersPage() {
                         </td>
                         <td>
                           {order.deliveryAddress ? (
-                            <button
-                              onClick={() => setDetailsModalOrder(order)}
+                            <motion.button
+                              onClick={() => { setDetailsModalOrder(order); setTrackingInput(order.trackingNumber || ''); }}
+                              whileTap={{ scale: 0.94 }}
+                              transition={SPRING_PRESS}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 rounded-lg text-xs font-bold transition-colors shadow-sm"
                             >
                               <Eye size={14} strokeWidth={2.5} /> View Details
-                            </button>
+                            </motion.button>
                           ) : (
                             <span className="col-muted">N/A</span>
                           )}
@@ -625,7 +678,7 @@ export default function AdminOrdersPage() {
                             ))}
                           </select>
                         </td>
-                      </tr>
+                      </AdminTableRow>
                     ))}
                   </tbody>
                 </table>
@@ -635,10 +688,9 @@ export default function AdminOrdersPage() {
         )}
       </div>
       {/* Order Details Modal */}
-      {detailsModalOrder && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
-          <div className="bg-(--color-bg-card) border border-(--color-border) rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-slideUp">
-            
+      <AdminModal open={!!detailsModalOrder} onClose={() => setDetailsModalOrder(null)} maxWidth="56rem">
+        {detailsModalOrder && (
+          <>
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 px-6 border-b border-(--color-border) bg-(--color-bg-hover)">
               <div className="flex items-center gap-3">
@@ -655,15 +707,17 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              <button 
+              <motion.button
                 onClick={() => setDetailsModalOrder(null)}
+                whileTap={{ scale: 0.88 }}
+                transition={SPRING_PRESS}
                 className="p-2 text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-bg-page) rounded-xl transition-colors cursor-pointer"
               >
                 <X size={20} />
-              </button>
+              </motion.button>
             </div>
 
-            <div className="p-6 max-h-[82vh] overflow-y-auto space-y-6">
+            <div className="p-6 overflow-y-auto space-y-6">
               {/* Order Actions Header Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-(--color-bg-page) rounded-xl border border-(--color-border)">
                 <div className="space-y-0.5">
@@ -686,6 +740,44 @@ export default function AdminOrdersPage() {
                   <div className="text-[10px] font-bold text-(--color-text-muted) uppercase tracking-wider">Grand Total</div>
                   <div className="font-extrabold text-base text-emerald-600 dark:text-emerald-400">{formatPrice(detailsModalOrder.total)}</div>
                 </div>
+              </div>
+
+              {/* Tracking ID Editor — sets the Speed Post consignment number shown to the customer */}
+              <div className="p-4 bg-(--color-bg-page) rounded-xl border border-(--color-border) space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold text-(--color-text-muted) uppercase tracking-wider flex items-center gap-1.5">
+                    <Truck size={13} /> Speed Post Tracking ID
+                  </div>
+                  {detailsModalOrder.trackingNumber && (
+                    <span className="text-[10px] font-bold text-(--color-success) bg-(--color-success-bg) px-2 py-0.5 rounded-full">
+                      Visible to customer
+                    </span>
+                  )}
+                </div>
+                {detailsModalOrder.dispatchedAt && (
+                  <p className="text-[11px] text-(--color-text-muted) -mt-1.5">
+                    Dispatched on {new Date(detailsModalOrder.dispatchedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                )}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={trackingInput}
+                    onChange={(e) => setTrackingInput(e.target.value)}
+                    placeholder="e.g. EK123456789IN"
+                    className="form-input font-mono text-sm flex-1"
+                  />
+                  <button
+                    onClick={() => handleSaveTracking(detailsModalOrder.id)}
+                    disabled={savingTracking}
+                    className="btn btn-primary btn-sm shrink-0 disabled:opacity-60"
+                  >
+                    {savingTracking ? 'Saving...' : detailsModalOrder.trackingNumber ? 'Update' : 'Save & Notify'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-(--color-text-muted)">
+                  Enter the 13-character India Post Speed Post consignment number once the parcel is booked. The customer will see this instantly on their Track Order page.
+                </p>
               </div>
 
               {/* Items Ordered */}
@@ -728,10 +820,9 @@ export default function AdminOrdersPage() {
               )}
 
             </div>
-
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </AdminModal>
     </div>
   );
 }

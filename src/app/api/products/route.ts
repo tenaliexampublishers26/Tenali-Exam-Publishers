@@ -16,7 +16,11 @@ export async function GET() {
       {
         status: 200,
         headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+          // Short s-maxage keeps the storefront listing responsive to admin
+          // price/stock edits — no stale-while-revalidate window, which was
+          // previously letting the CDN serve outdated prices for minutes
+          // after an update.
+          'Cache-Control': 'public, s-maxage=15, must-revalidate',
         },
       }
     );

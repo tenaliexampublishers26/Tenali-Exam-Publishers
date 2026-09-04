@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const orders = await sql`
       SELECT id, order_number as "orderNumber", subtotal, delivery_charge as "deliveryCharge", total,
              status, payment_status as "paymentStatus", tracking_number as "trackingNumber",
-             carrier, created_at as "createdAt"
+             carrier, dispatched_at as "dispatchedAt", created_at as "createdAt"
       FROM orders
       WHERE user_id = ${userId}
       ORDER BY created_at DESC

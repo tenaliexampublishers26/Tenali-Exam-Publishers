@@ -16,7 +16,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       ? await sql`
         SELECT id, order_number as "orderNumber", subtotal, delivery_charge as "deliveryCharge", total,
                status, payment_status as "paymentStatus", tracking_number as "trackingNumber",
-               carrier, created_at as "createdAt", delivery_address as "deliveryAddress"
+               carrier, dispatched_at as "dispatchedAt", created_at as "createdAt", delivery_address as "deliveryAddress"
         FROM orders
         WHERE id = ${orderId}::uuid OR order_number = ${orderId}
         LIMIT 1
@@ -24,7 +24,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       : await sql`
         SELECT id, order_number as "orderNumber", subtotal, delivery_charge as "deliveryCharge", total,
                status, payment_status as "paymentStatus", tracking_number as "trackingNumber",
-               carrier, created_at as "createdAt", delivery_address as "deliveryAddress"
+               carrier, dispatched_at as "dispatchedAt", created_at as "createdAt", delivery_address as "deliveryAddress"
         FROM orders
         WHERE order_number = ${orderId}
         LIMIT 1

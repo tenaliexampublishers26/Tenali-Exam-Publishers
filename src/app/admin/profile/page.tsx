@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { User, KeyRound, ShieldCheck } from 'lucide-react';
+import { AdminPageHeader, SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
 
 export default function AdminProfilePage() {
   const { user, login } = useAuth(); // using login internally updates the context if needed, or we might need to refresh
@@ -75,7 +77,7 @@ export default function AdminProfilePage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
+
     if (pwData.newPassword !== pwData.confirmPassword) {
       toast.error('New passwords do not match');
       return;
@@ -115,27 +117,28 @@ export default function AdminProfilePage() {
 
   return (
     <div className="max-w-3xl space-y-8">
-      {/* Page Header */}
-      <div className="admin-page-header">
-        <div>
-          <h2 className="admin-page-title">
-            <User size={24} />
-            Admin Profile Settings
-          </h2>
-          <p className="admin-page-desc">Manage your personal credentials and security passwords</p>
-        </div>
-      </div>
+      <AdminPageHeader
+        icon={<User size={24} />}
+        title="Admin Profile Settings"
+        description="Manage your personal credentials and security passwords"
+      />
 
-      <div className="flex flex-col gap-12 mt-6">
-        
+      <div className="flex flex-col gap-8 mt-6">
+
         {/* Personal Details */}
-        <form onSubmit={handleProfileSubmit} className="admin-card">
+        <motion.form
+          onSubmit={handleProfileSubmit}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={SPRING_UI}
+          className="admin-card"
+        >
           <div className="admin-form-section">
             <h3 className="admin-form-section__title flex items-center gap-2">
               <ShieldCheck size={18} className="text-(--color-success)" />
               Personal Details
             </h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="form-group sm:col-span-2">
                 <label className="form-label">Full Name</label>
@@ -154,21 +157,33 @@ export default function AdminProfilePage() {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-(--color-border)">
-            <button type="submit" disabled={loading} className="btn btn-primary w-full sm:w-auto justify-center">
+          <div className="flex justify-end pt-4 px-6 pb-6 border-t border-(--color-border)">
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileTap={{ scale: 0.97 }}
+              transition={SPRING_PRESS}
+              className="btn btn-primary w-full sm:w-auto justify-center disabled:opacity-60"
+            >
               {loading ? 'Saving...' : 'Save Profile Changes'}
-            </button>
+            </motion.button>
           </div>
-        </form>
+        </motion.form>
 
         {/* Change Password */}
-        <form onSubmit={handlePasswordSubmit} className="admin-card">
+        <motion.form
+          onSubmit={handlePasswordSubmit}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...SPRING_UI, delay: 0.08 }}
+          className="admin-card"
+        >
           <div className="admin-form-section">
             <h3 className="admin-form-section__title flex items-center gap-2">
               <KeyRound size={18} />
               Change Password
             </h3>
-            
+
             <div className="grid grid-cols-1 gap-5 max-w-md">
               <div className="form-group">
                 <label className="form-label">Current Password</label>
@@ -187,13 +202,19 @@ export default function AdminProfilePage() {
             </div>
           </div>
 
-          <div className="flex justify-start pt-4 border-t border-(--color-border)">
-            <button type="submit" disabled={pwLoading} className="btn btn-secondary w-full sm:w-auto justify-center">
+          <div className="flex justify-start pt-4 px-6 pb-6 border-t border-(--color-border)">
+            <motion.button
+              type="submit"
+              disabled={pwLoading}
+              whileTap={{ scale: 0.97 }}
+              transition={SPRING_PRESS}
+              className="btn btn-secondary w-full sm:w-auto justify-center disabled:opacity-60"
+            >
               {pwLoading ? 'Updating...' : 'Change Password'}
-            </button>
+            </motion.button>
           </div>
-        </form>
-        
+        </motion.form>
+
       </div>
     </div>
   );

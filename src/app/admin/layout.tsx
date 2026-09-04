@@ -2,18 +2,18 @@
 import { ReactNode, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { motion, AnimatePresence, useMotionValue, animate } from 'motion/react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch-button';
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Package, 
-  User, 
-  Users, 
-  LogOut, 
-  ShieldAlert, 
-  ChevronsRight, 
-  ChevronDown,
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  Package,
+  User,
+  Users,
+  LogOut,
+  ShieldAlert,
+  ChevronsRight,
   Sun,
   Moon,
   Home,
@@ -38,6 +38,26 @@ const MENU: MenuItem[] = [
   { href: '/admin/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
 
+const PAGE_TITLES: Record<string, string> = {
+  '/admin': 'TENALI EXAMS PUBLISHERS',
+  '/admin/orders': 'Orders Management',
+  '/admin/products': 'Products Management',
+  '/admin/profile': 'Admin Profile',
+  '/admin/users': 'Users Management',
+  '/admin/settings': 'System Settings',
+};
+
+// Critically damped default -- graceful, no bounce (skill section on motion)
+const SPRING_UI = { type: 'spring' as const, bounce: 0, duration: 0.4 };
+// Slight bounce reserved for the drag-to-dismiss drawer, which carries real gesture momentum
+const SPRING_MOMENTUM = { type: 'spring' as const, bounce: 0.22, duration: 0.35 };
+
+function resolveTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  const match = Object.keys(PAGE_TITLES).find((p) => p !== '/admin' && pathname.startsWith(p));
+  return match ? PAGE_TITLES[match] : 'Admin Panel';
+}
+
 export default function AdminLayout({ children }: { children: ReactNode }): React.JSX.Element {
   const pathname = usePathname();
   const router = useRouter();
@@ -46,6 +66,10 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
   const [open, setOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Drag position for the mobile drawer -- drives 1:1 tracking + rubber-band + fling-to-dismiss
+  const dragX = useMotionValue(0);
 
   useEffect(() => {
     setMounted(true);
@@ -106,126 +130,91 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
 
   const firstLetter = user.name ? user.name.charAt(0).toUpperCase() : 'A';
 
+  /** Nav item, shared between desktop rail and mobile drawer. */
+  function NavItem({ item, isOpenState, indicatorId }: { item: MenuItem; isOpenState: boolean; indicatorId: string }) {
+    const isSelected = pathname === item.href;
+    return (
+      <Link
+        href={item.href}
+        prefetch={true}
+        className="relative flex h-11 w-full items-center rounded-xl outline-none"
+      >
+        {isSelected && (
+          <motion.div
+            layoutId={indicatorId}
+            transition={SPRING_UI}
+            className="absolute inset-0 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/25"
+          />
+        )}
+        <motion.div
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
+          className={`relative z-10 flex h-full w-full items-center rounded-xl ${
+            isSelected ? 'text-white font-bold' : 'text-(--color-text-secondary) hover:bg-(--color-bg-hover) hover:text-(--color-text-primary)'
+          }`}
+        >
+          <div className="grid h-full w-14 place-content-center shrink-0">
+            {item.icon}
+          </div>
+          {isOpenState && (
+            <span className="text-sm font-semibold truncate">
+              {item.label}
+            </span>
+          )}
+        </motion.div>
+      </Link>
+    );
+  }
+
   return (
     <div className={`flex h-screen h-dvh max-h-dvh w-full overflow-hidden ${isDark ? 'dark' : ''}`}>
       <div className="flex w-full h-full overflow-hidden bg-(--color-bg-page) text-(--color-text-primary)">
-        
-        {/* Mobile Sidebar Backdrop Overlay */}
-        {mobileOpen && (
-          <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden transition-all duration-300"
-            onClick={() => setMobileOpen(false)}
-          />
-        )}
 
-        {/* Locked Admin Sidebar */}
-        <aside
-          className={`fixed md:relative top-0 left-0 h-full max-h-dvh shrink-0 border-r transition-all duration-300 ease-in-out z-40 border-(--color-border) bg-(--color-bg-card) p-3 shadow-sm flex flex-col overscroll-contain select-none ${
-            mobileOpen ? 'w-64 translate-x-0' : (open ? 'w-64' : 'w-20')
-          } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        {/* Mobile Sidebar Backdrop Overlay -- dims to focus */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Desktop Sidebar -- spring width collapse, translucent material */}
+        <motion.aside
+          animate={{ width: open ? 256 : 80 }}
+          transition={SPRING_UI}
+          className="hidden md:flex relative shrink-0 h-full max-h-dvh border-r admin-sidebar-glass p-3 shadow-sm flex-col overscroll-contain select-none z-40"
         >
-          {/* Logo & Profile section */}
-          <div className="mb-6 border-b border-(--color-border) pb-4 shrink-0">
-            <div className="flex items-center justify-between rounded-2xl p-2 hover:bg-(--color-bg-hover) transition-all">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="grid size-10 shrink-0 place-content-center rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/20 text-white">
-                  <span className="font-extrabold text-lg">{firstLetter}</span>
-                </div>
-                {(open || mobileOpen) && (
-                  <div className="transition-opacity duration-200 opacity-100 min-w-0">
-                    <span className="block text-sm font-bold text-(--color-text-primary) truncate max-w-30">
-                      {user.name}
-                    </span>
-                    <span className="flex items-center gap-1 text-[10px] text-(--color-success) font-bold uppercase tracking-wider mt-0.5">
-                      <ShieldCheck size={10} /> Admin
-                    </span>
-                  </div>
-                )}
-              </div>
+          <SidebarContent
+            isOpenState={open}
+            firstLetter={firstLetter}
+            userName={user.name}
+            logout={logout}
+            indicatorId="admin-nav-indicator-desktop"
+            NavItem={NavItem}
+          />
 
-              {/* Mobile Close Button inside sidebar header */}
-              {mobileOpen && (
-                <button 
-                  onClick={() => setMobileOpen(false)} 
-                  className="p-1.5 rounded-lg hover:bg-(--color-bg-hover) text-(--color-text-secondary) md:hidden"
-                >
-                  <X size={18} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation Options (Independent scroll if needed, with scroll lock to prevent parent page movement) */}
-          <div className="space-y-1.5 flex-1 overflow-y-auto overscroll-contain pr-0.5">
-            {MENU.map(item => {
-              const isSelected = pathname === item.href;
-              const isOpenState = open || mobileOpen;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  prefetch={true}
-                  className={`relative flex h-11 w-full items-center rounded-xl transition-all duration-200 ${
-                    isSelected 
-                      ? "bg-linear-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 font-bold" 
-                      : "text-(--color-text-secondary) hover:bg-(--color-bg-hover) hover:text-(--color-text-primary)"
-                  }`}
-                >
-                  <div className={`grid h-full w-14 place-content-center shrink-0 ${isSelected ? 'text-white' : 'text-(--color-text-secondary)'}`}>
-                    {item.icon}
-                  </div>
-                  {isOpenState && (
-                    <span className="text-sm font-semibold transition-opacity duration-200 opacity-100 truncate">
-                      {item.label}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Footer Controls (Theme & Logout) */}
-          <div className="border-t border-(--color-border) pt-4 space-y-1.5 mb-12 shrink-0">
-            
-            {/* Store Front Link */}
-            <Link
-              href="/"
-              className="flex h-11 w-full items-center rounded-xl text-(--color-text-secondary) hover:bg-(--color-bg-hover) hover:text-(--color-text-primary) transition-colors"
-            >
-              <div className="grid h-full w-14 place-content-center shrink-0 text-(--color-text-secondary)">
-                <Home size={18} />
-              </div>
-              {(open || mobileOpen) && (
-                <span className="text-sm font-semibold truncate">
-                  Main Store
-                </span>
-              )}
-            </Link>
-
-            {/* Logout Option */}
-            <button
-              onClick={logout}
-              className="flex h-11 w-full items-center rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-500 transition-colors"
-            >
-              <div className="grid h-full w-14 place-content-center shrink-0 text-rose-500">
-                <LogOut size={18} />
-              </div>
-              {(open || mobileOpen) && <span className="text-sm font-bold truncate">Logout</span>}
-            </button>
-          </div>
-
-          {/* Toggle Close Button (Hidden on Mobile) */}
-          <button
+          {/* Collapse toggle -- instant feedback on press */}
+          <motion.button
             onClick={() => setOpen(!open)}
-            className="absolute bottom-0 left-0 right-0 border-t border-(--color-border) hover:bg-(--color-bg-hover) transition-colors bg-(--color-bg-card) text-(--color-text-muted) hidden md:block"
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.15 }}
+            className="absolute bottom-0 left-0 right-0 border-t border-(--color-border) hover:bg-(--color-bg-hover) transition-colors bg-transparent text-(--color-text-muted)"
           >
             <div className="flex items-center p-3.5">
               <div className="grid size-10 place-content-center">
-                <ChevronsRight
-                  className={`h-4 w-4 transition-transform duration-300 text-(--color-text-muted) ${
-                    open ? "rotate-180" : ""
-                  }`}
-                />
+                <motion.span
+                  animate={{ rotate: open ? 180 : 0 }}
+                  transition={SPRING_UI}
+                  className="flex"
+                >
+                  <ChevronsRight className="h-4 w-4 text-(--color-text-muted)" />
+                </motion.span>
               </div>
               {open && (
                 <span className="text-xs font-bold text-(--color-text-muted) uppercase tracking-wider">
@@ -233,31 +222,69 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
                 </span>
               )}
             </div>
-          </button>
-        </aside>
+          </motion.button>
+        </motion.aside>
+
+        {/* Mobile Drawer -- draggable, 1:1 tracking, rubber-band + velocity-projected dismiss */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={SPRING_MOMENTUM}
+              style={{ x: dragX }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={{ left: 0.5, right: 0 }}
+              onDragEnd={(_, info) => {
+                // Project where the flick is going; dismiss if the gesture is
+                // heading left with any real intent, else settle back.
+                const projected = info.offset.x + info.velocity.x * 0.15;
+                if (projected < -80) {
+                  setMobileOpen(false);
+                } else {
+                  animate(dragX, 0, SPRING_MOMENTUM);
+                }
+              }}
+              className="fixed md:hidden top-0 left-0 h-full max-h-dvh w-64 admin-sidebar-glass border-r p-3 shadow-2xl flex flex-col overscroll-contain select-none z-50"
+            >
+              <SidebarContent
+                isOpenState={true}
+                firstLetter={firstLetter}
+                userName={user.name}
+                logout={logout}
+                indicatorId="admin-nav-indicator-mobile"
+                NavItem={NavItem}
+                onClose={() => setMobileOpen(false)}
+              />
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col h-full min-h-0 min-w-0 overflow-hidden bg-(--color-bg-page) text-(--color-text-primary)">
-          
-          {/* Top Admin Navbar */}
-          <header className="h-16 border-b border-(--color-border) bg-(--color-bg-card) px-4 md:px-8 flex items-center justify-between shrink-0 z-30">
+
+          {/* Top Admin Navbar -- translucent, scroll-edge shadow instead of hard divider */}
+          <header
+            className={`relative h-16 admin-glass border-b px-4 md:px-8 flex items-center justify-between shrink-0 z-30 transition-shadow duration-300 ${
+              scrolled ? 'shadow-sm' : ''
+            }`}
+          >
             <div className="flex items-center gap-3 min-w-0">
-              {/* Mobile hamburger menu toggle */}
-              <button
+              {/* Mobile hamburger menu toggle -- instant press feedback */}
+              <motion.button
                 onClick={() => setMobileOpen(!mobileOpen)}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', bounce: 0, duration: 0.15 }}
                 className="flex size-11 items-center justify-center -ml-3 text-(--color-text-secondary) hover:text-(--color-text-primary) md:hidden rounded-lg hover:bg-(--color-bg-hover)"
                 aria-label="Toggle Sidebar Menu"
               >
                 <Menu size={22} />
-              </button>
+              </motion.button>
 
-              <h1 className="text-lg font-medium tracking-tight text-(--color-text-primary) mr-2 hidden md:block truncate">
-                {pathname === '/admin' ? 'TENALI EXAMS PUBLISHERS' : 
-                 pathname.startsWith('/admin/orders') ? 'Orders Management' :
-                 pathname.startsWith('/admin/products') ? 'Products Management' :
-                 pathname.startsWith('/admin/profile') ? 'Admin Profile' :
-                 pathname.startsWith('/admin/users') ? 'Users Management' :
-                 pathname.startsWith('/admin/settings') ? 'System Settings' : 'Admin Panel'}
+              <h1 className="text-lg font-bold tracking-tight text-(--color-text-primary) mr-2 hidden md:block truncate">
+                {resolveTitle(pathname)}
               </h1>
 
               <div className="h-4 w-px bg-(--color-border) hidden md:block mr-2 shrink-0" />
@@ -266,29 +293,44 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
                 System Status:
               </span>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-bold text-(--color-success) bg-(--color-success-bg) rounded-full shrink-0">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="relative flex size-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                </span>
                 Operational
               </span>
             </div>
 
             <div className="flex items-center gap-4 shrink-0">
               <div className="flex items-center gap-2">
-                <Sun size={14} className={isDark ? "text-slate-400" : "text-amber-500"} />
+                <Sun size={14} className={isDark ? 'text-slate-400' : 'text-amber-500'} />
                 <Switch
                   value={isDark}
                   onToggle={() => setIsDark(!isDark)}
                   iconOn={<Moon className="size-3.5 text-blue-500" />}
                   iconOff={<Sun className="size-3.5 text-amber-500" />}
                 />
-                <Moon size={14} className={isDark ? "text-blue-500" : "text-slate-400"} />
+                <Moon size={14} className={isDark ? 'text-blue-500' : 'text-slate-400'} />
               </div>
             </div>
           </header>
 
           {/* Scrollable Main Content Container */}
-          <main className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-8 bg-(--color-bg-page) text-(--color-text-primary)">
+          <main
+            className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-8 bg-(--color-bg-page) text-(--color-text-primary)"
+            onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+          >
             <div className="max-w-7xl mx-auto">
-              {children}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={pathname}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={SPRING_UI}
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </main>
 
@@ -296,5 +338,91 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
 
       </div>
     </div>
+  );
+}
+
+function SidebarContent({
+  isOpenState,
+  firstLetter,
+  userName,
+  logout,
+  indicatorId,
+  NavItem,
+  onClose,
+}: {
+  isOpenState: boolean;
+  firstLetter: string;
+  userName: string;
+  logout: () => void;
+  indicatorId: string;
+  NavItem: (props: { item: MenuItem; isOpenState: boolean; indicatorId: string }) => React.JSX.Element;
+  onClose?: () => void;
+}) {
+  return (
+    <>
+      {/* Logo & Profile section */}
+      <div className="mb-6 border-b border-(--color-border) pb-4 shrink-0">
+        <div className="flex items-center justify-between rounded-2xl p-2 hover:bg-(--color-bg-hover) transition-colors duration-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="grid size-10 shrink-0 place-content-center rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 shadow-md shadow-blue-500/20 text-white">
+              <span className="font-extrabold text-lg">{firstLetter}</span>
+            </div>
+            {isOpenState && (
+              <div className="min-w-0">
+                <span className="block text-sm font-bold text-(--color-text-primary) truncate max-w-30">
+                  {userName}
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-(--color-success) font-bold uppercase tracking-wider mt-0.5">
+                  <ShieldCheck size={10} /> Admin
+                </span>
+              </div>
+            )}
+          </div>
+
+          {onClose && (
+            <motion.button
+              onClick={onClose}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.15 }}
+              className="p-1.5 rounded-lg hover:bg-(--color-bg-hover) text-(--color-text-secondary) md:hidden"
+            >
+              <X size={18} />
+            </motion.button>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="space-y-1.5 flex-1 overflow-y-auto overscroll-contain pr-0.5">
+        {MENU.map((item) => (
+          <NavItem key={item.href} item={item} isOpenState={isOpenState} indicatorId={indicatorId} />
+        ))}
+      </div>
+
+      {/* Footer Controls (Home & Logout) */}
+      <div className="border-t border-(--color-border) pt-4 space-y-1.5 mb-12 shrink-0">
+        <Link
+          href="/"
+          className="flex h-11 w-full items-center rounded-xl text-(--color-text-secondary) hover:bg-(--color-bg-hover) hover:text-(--color-text-primary) transition-colors duration-200"
+        >
+          <div className="grid h-full w-14 place-content-center shrink-0 text-(--color-text-secondary)">
+            <Home size={18} />
+          </div>
+          {isOpenState && <span className="text-sm font-semibold truncate">Main Store</span>}
+        </Link>
+
+        <motion.button
+          onClick={logout}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.15 }}
+          className="flex h-11 w-full items-center rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-500 transition-colors duration-200"
+        >
+          <div className="grid h-full w-14 place-content-center shrink-0 text-rose-500">
+            <LogOut size={18} />
+          </div>
+          {isOpenState && <span className="text-sm font-bold truncate">Logout</span>}
+        </motion.button>
+      </div>
+    </>
   );
 }

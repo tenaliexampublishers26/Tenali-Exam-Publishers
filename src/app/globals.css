@@ -108,11 +108,44 @@
   --transition-base: 150ms ease;
   --transition-slow: 300ms ease;
 
+  /* Motion — Apple-style spring curves approximated for CSS transitions.
+     Use these instead of ease/ease-in-out anywhere something is "touched". */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);       /* critically damped, response ~0.35s */
+  --ease-spring-snappy: cubic-bezier(0.22, 0.61, 0.36, 1); /* response ~0.2s */
+  --ease-spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1); /* momentum, slight overshoot */
+  --duration-press: 100ms;   /* instant feedback on pointer-down */
+  --duration-settle: 350ms;  /* default spring settle */
+  --duration-material: 420ms; /* glass surfaces arriving */
+
   /* Layout */
   --max-width: 1280px;
   --max-width-narrow: 960px;
   --navbar-height: 72px;
   --sidebar-width: 260px;
+
+  /* ---------- Admin: Materials & Depth ---------- */
+  --admin-glass-bg: rgba(255, 255, 255, 0.72);
+  --admin-glass-border: rgba(226, 232, 240, 0.6);
+  --admin-glass-blur: 20px;
+  --admin-sidebar-bg: rgba(255, 255, 255, 0.82);
+  --admin-shadow-float: 0 8px 30px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+  --admin-shadow-raised: 0 16px 40px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.dark {
+  --admin-glass-bg: rgba(15, 23, 42, 0.6);
+  --admin-glass-border: rgba(51, 65, 85, 0.5);
+  --admin-sidebar-bg: rgba(15, 23, 42, 0.72);
+  --admin-shadow-float: 0 8px 30px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --admin-shadow-raised: 0 16px 40px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --admin-glass-bg: var(--color-bg-card);
+    --admin-sidebar-bg: var(--color-bg-card);
+    --admin-glass-blur: 0px;
+  }
 }
 
 /* ---------- Reset & Base ---------- */
@@ -201,11 +234,18 @@ ul, ol {
   font-weight: var(--font-semibold);
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), border-color var(--transition-base),
+    box-shadow var(--transition-base), transform var(--duration-press) var(--ease-spring-snappy);
   white-space: nowrap;
   line-height: 1.4;
   letter-spacing: 0.01em;
   min-height: 44px;
+}
+
+/* Feedback lives on the press, not the release — instant, then a settle back on release */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform var(--duration-press) ease-out;
 }
 
 .btn:disabled {
@@ -717,13 +757,15 @@ nextjs-portal,
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .admin-page-title {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: clamp(1.25rem, 1.5vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -738,7 +780,8 @@ nextjs-portal,
 .admin-page-desc {
   font-size: 0.85rem;
   color: var(--color-text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
+  letter-spacing: 0.003em;
 }
 
 /* ---------- Admin Table ---------- */
@@ -752,13 +795,17 @@ nextjs-portal,
 .admin-table thead th {
   padding: 12px 16px;
   text-align: left;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   color: var(--color-text-muted);
   border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-card);
+  z-index: 1;
 }
 
 .admin-table tbody td {
@@ -769,7 +816,7 @@ nextjs-portal,
 }
 
 .admin-table tbody tr {
-  transition: background var(--transition-fast);
+  transition: background-color var(--duration-press) var(--ease-spring-snappy);
 }
 
 .admin-table tbody tr:hover {
@@ -843,10 +890,143 @@ nextjs-portal,
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--duration-settle) var(--ease-spring), border-color var(--duration-settle) var(--ease-spring);
+}
+
+/* ---------- Admin Loading State ---------- */
+.admin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 90px 20px;
+  color: var(--color-text-muted);
+}
+
+.admin-loading__spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  animation: admin-spin 0.7s linear infinite;
+}
+
+@keyframes admin-spin {
+  to { transform: rotate(360deg); }
+}
+
+.admin-loading__text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Admin Empty State ---------- */
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 72px 24px;
+}
+
+.admin-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  margin-bottom: 18px;
+}
+
+.admin-empty__title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+
+.admin-empty__desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+/* ---------- Admin Form Section (profile / settings forms) ---------- */
+.admin-form-section {
+  padding: 22px;
+}
+
+.admin-form-section__title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  color: var(--color-text-primary);
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* ---------- Admin Table Column Utilities ---------- */
+.col-primary {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.col-muted {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.col-bold {
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.col-right {
+  text-align: right;
+}
+
+/* ---------- Admin Action Buttons (table row icon actions) ---------- */
+.admin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--duration-press) var(--ease-spring-snappy),
+    color var(--duration-press) var(--ease-spring-snappy),
+    border-color var(--duration-press) var(--ease-spring-snappy);
+}
+
+.admin-action-btn--edit:hover {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: transparent;
+}
+
+.admin-action-btn--delete:hover {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: transparent;
 }
 
 .admin-card-header {
-  padding: 16px 20px;
+  padding: 18px 22px;
   border-bottom: 1px solid var(--color-border-light);
   display: flex;
   align-items: center;
@@ -858,7 +1038,8 @@ nextjs-portal,
 .admin-card-title {
   font-family: var(--font-heading);
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
@@ -866,33 +1047,44 @@ nextjs-portal,
 }
 
 .admin-card-body {
-  padding: 20px;
+  padding: 22px;
 }
 
 /* ---------- Stat Card ---------- */
 .stat-card {
+  position: relative;
+  overflow: hidden;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 22px;
   box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--duration-settle) var(--ease-spring),
+    border-color var(--duration-settle) var(--ease-spring),
+    transform var(--duration-settle) var(--ease-spring);
+}
+
+.stat-card:hover {
+  box-shadow: var(--admin-shadow-float);
+  transform: translateY(-3px);
 }
 
 .stat-value {
   font-family: var(--font-heading);
-  font-size: 1.75rem;
+  font-size: clamp(1.5rem, 2vw, 1.85rem);
   font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--color-text-primary);
-  line-height: 1.1;
+  line-height: 1.08;
   margin-bottom: 4px;
 }
 
 .stat-label {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--color-text-muted);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .stat-change {
@@ -906,3 +1098,38 @@ nextjs-portal,
 
 .stat-change.positive { color: var(--color-success); }
 .stat-change.negative { color: var(--color-error); }
+
+/* ---------- Admin Glass Surfaces (sidebar, header, modals) ---------- */
+.admin-glass {
+  background: var(--admin-glass-bg);
+  backdrop-filter: blur(var(--admin-glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--admin-glass-blur)) saturate(180%);
+  border-color: var(--admin-glass-border);
+}
+
+.admin-sidebar-glass {
+  background: var(--admin-sidebar-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-color: var(--admin-glass-border);
+}
+
+/* Scroll-edge fade instead of a hard divider under floating chrome */
+.admin-scroll-edge {
+  position: relative;
+}
+.admin-scroll-edge::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -12px;
+  height: 12px;
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.05), transparent);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-card, .stat-card, .admin-table tbody tr, .btn {
+    transition: opacity 200ms ease, background-color 200ms ease !important;
+    transform: none !important;
+  }
+}

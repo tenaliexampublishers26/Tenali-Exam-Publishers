@@ -2,17 +2,29 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { formatPrice } from '@/lib/utils';
-import { PackageOpen, Package, Calendar, ChevronRight, Truck, CheckCircle2, Clock, XCircle, ArrowLeft } from 'lucide-react';
+import { PackageOpen, Package, Calendar, ChevronRight, Truck, CheckCircle2, Clock, XCircle, ArrowLeft, Ban } from 'lucide-react';
 
-import { fetchWithCache, getCachedData } from '@/lib/api-cache';
+import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
+
+const CANCELLABLE_STATUSES = ['placed', 'processing'];
+const CANCEL_WINDOW_HOURS = 24;
+
+function isOrderCancellable(order: any): boolean {
+  if (!CANCELLABLE_STATUSES.includes(order.status)) return false;
+  const hoursSinceOrder = (Date.now() - new Date(order.createdAt).getTime()) / (1000 * 60 * 60);
+  return hoursSinceOrder <= CANCEL_WINDOW_HOURS;
+}
 
 export default function OrdersPage(): React.JSX.Element {
   const { user } = useAuth();
+  const toast = useToast();
   const url = user?.id ? `/api/user/orders?userId=${user.id}` : '';
   const cached = url ? getCachedData<{ orders: any[] }>(url) : null;
   const [orders, setOrders] = useState<any[]>(cached ? cached.orders || [] : []);
   const [loading, setLoading] = useState(Boolean(!cached && user));
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -31,6 +43,34 @@ export default function OrdersPage(): React.JSX.Element {
     };
     fetchOrders();
   }, [user]);
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!user?.id) return;
+    if (!window.confirm('Cancel this order? This cannot be undone.')) return;
+
+    setCancellingId(orderId);
+    try {
+      const res = await fetch(`/api/user/orders/${orderId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to cancel order');
+        return;
+      }
+
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: 'cancelled' } : o)));
+      invalidateCache(`/api/user/orders?userId=${user.id}`);
+      toast.success('Order cancelled successfully');
+    } catch (err) {
+      toast.error('Failed to cancel order. Please try again.');
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -143,6 +183,16 @@ export default function OrdersPage(): React.JSX.Element {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {isOrderCancellable(order) && (
+                    <button
+                      onClick={() => handleCancelOrder(order.id)}
+                      disabled={cancellingId === order.id}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white dark:bg-rose-500/10 dark:hover:bg-rose-600 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Ban size={14} />
+                      {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
+                    </button>
+                  )}
                   <Link
                     href={`/account/orders/${order.id}`}
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all shadow-xs"

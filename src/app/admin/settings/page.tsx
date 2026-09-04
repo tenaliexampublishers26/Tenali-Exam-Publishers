@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { Switch } from '@/components/ui/switch-button';
+import { motion } from 'motion/react';
+import { SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
 
 interface LiveNotificationState {
   enabled: boolean;
@@ -146,7 +148,12 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
       {/* Page Header */}
-      <div className="admin-page-header flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING_UI}
+        className="admin-page-header flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
         <div>
           <h2 className="admin-page-title text-2xl font-black text-(--color-text-primary) flex items-center gap-2.5">
             <SettingsIcon size={24} className="text-blue-600" />
@@ -157,21 +164,28 @@ export default function AdminSettingsPage() {
           </p>
         </div>
 
-        <button 
+        <motion.button
           onClick={saveAllSettings}
           disabled={saving}
-          className="btn btn-primary px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shrink-0 shadow-md shadow-blue-500/20"
+          whileTap={{ scale: 0.97 }}
+          transition={SPRING_PRESS}
+          className="btn btn-primary px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shrink-0 shadow-md shadow-blue-500/20 disabled:opacity-60"
         >
           {saving ? (
             <><Loader2 size={18} className="animate-spin" /> Saving Changes...</>
           ) : (
             <><Save size={18} /> Save All Settings</>
           )}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* 1. HERO LIVE NOTIFICATION SCROLLING MARQUEE CARD */}
-      <div className="admin-card rounded-2xl border border-(--color-border) bg-(--color-bg-card) shadow-sm overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_UI, delay: 0.06 }}
+        className="admin-card rounded-2xl border border-(--color-border) bg-(--color-bg-card) shadow-sm overflow-hidden"
+      >
         {/* Header */}
         <div className="border-b border-(--color-border) p-6 bg-gradient-to-r from-red-500/10 via-amber-500/5 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -236,11 +250,14 @@ export default function AdminSettingsPage() {
             </span>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               {TEMPLATES.map((tmpl, idx) => (
-                <button
+                <motion.button
                   key={idx}
                   type="button"
                   onClick={() => applyTemplate(tmpl)}
-                  className="text-left p-3 rounded-xl border border-(--color-border) bg-(--color-bg-hover) hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
+                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ y: -2 }}
+                  transition={SPRING_PRESS}
+                  className="text-left p-3 rounded-xl border border-(--color-border) bg-(--color-bg-hover) hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors group"
                 >
                   <span className="inline-block text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">
                     {tmpl.badge}
@@ -248,7 +265,7 @@ export default function AdminSettingsPage() {
                   <p className="text-xs text-(--color-text-primary) line-clamp-2 leading-relaxed">
                     {tmpl.text}
                   </p>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -348,10 +365,15 @@ export default function AdminSettingsPage() {
             Save Notification Settings
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* 2. MAINTENANCE MODE CARD */}
-      <div className="admin-card rounded-2xl border border-(--color-border) bg-(--color-bg-card) shadow-sm overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_UI, delay: 0.12 }}
+        className="admin-card rounded-2xl border border-(--color-border) bg-(--color-bg-card) shadow-sm overflow-hidden"
+      >
         <div className="border-b border-(--color-border) p-6">
           <h3 className="text-lg font-bold text-(--color-text-primary) flex items-center gap-2">
             <ShieldCheck className="text-blue-500" size={20} />
@@ -393,16 +415,18 @@ export default function AdminSettingsPage() {
         </div>
 
         <div className="p-4 bg-(--color-bg-hover) border-t border-(--color-border) flex justify-end">
-          <button 
+          <motion.button
             onClick={saveAllSettings}
             disabled={saving}
-            className="btn btn-primary px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2"
+            whileTap={{ scale: 0.97 }}
+            transition={SPRING_PRESS}
+            className="btn btn-primary px-5 py-2 rounded-xl text-sm font-bold flex items-center gap-2 disabled:opacity-60"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Save Settings
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -20,7 +20,11 @@ interface ProductDetailClientProps {
 export default function ProductDetailClient({ initialProduct, slug }: ProductDetailClientProps) {
   const router = useRouter();
   const { product: fetchedProduct, loading } = useProduct(slug);
-  const product = initialProduct || fetchedProduct;
+  // Prefer the freshly-fetched product once it resolves — `initialProduct` was
+  // rendered at build/deploy time (this page uses generateStaticParams) and can
+  // go stale the moment an admin edits price or stock. The client fetch hits
+  // /api/products/[slug] directly with no CDN cache, so it's always current.
+  const product = fetchedProduct || initialProduct;
 
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -117,10 +121,37 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
 
   const productLangs = getProductLanguages();
 
+  // Resolve stock for the selected medium (or overall product stock when the
+  // product has no per-language breakdown). Mirrors the same resolution logic
+  // used server-side in create-order, so what the customer sees here matches
+  // what will actually be enforced at checkout.
+  const getStockForLang = (langCode: string): number => {
+    if (productLangs.length > 0) {
+      const entry = productLangs.find((l: any) => l.code === langCode);
+      if (entry && typeof entry.stock === 'number') return entry.stock;
+    }
+    return typeof product.stock === 'number' ? product.stock : 0;
+  };
+
+  const activeLangCode = selectedLang || (productLangs.length > 0 ? '' : 'en');
+  const selectedStock = activeLangCode ? getStockForLang(activeLangCode) : (product.stock ?? 0);
+  const isOutOfStock = productLangs.length > 0
+    ? (selectedLang ? selectedStock <= 0 : productLangs.every((l: any) => getStockForLang(l.code) <= 0))
+    : selectedStock <= 0;
+  const isLowStock = !isOutOfStock && selectedStock > 0 && selectedStock <= 5;
+
   const handleCheckout = () => {
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (isOutOfStock) {
+      toast.error('Sorry, this item is currently out of stock.');
+      return;
+    }
+    if (quantity > selectedStock) {
+      toast.error(`Only ${selectedStock} left in stock. Please reduce the quantity.`);
       return;
     }
     setLangError(false);
@@ -132,6 +163,14 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (isOutOfStock) {
+      toast.error('Sorry, this item is currently out of stock.');
+      return;
+    }
+    if (quantity > selectedStock) {
+      toast.error(`Only ${selectedStock} left in stock. Please reduce the quantity.`);
       return;
     }
     setLangError(false);
@@ -234,6 +273,17 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
             {/* Price */}
             <div className={styles.price}>{formatPrice(product.price)}</div>
 
+            {/* Stock status */}
+            {isOutOfStock ? (
+              <span className="badge badge-error" style={{ display: 'inline-flex', marginBottom: '12px' }}>
+                Out of Stock
+              </span>
+            ) : isLowStock ? (
+              <span className="badge badge-warning" style={{ display: 'inline-flex', marginBottom: '12px' }}>
+                Only {selectedStock} left in stock
+              </span>
+            ) : null}
+
             {/* Bundle Summary */}
             <div className={styles.bundleSummaryBox}>
               <div className={styles.bundleSummaryGrid}>
@@ -317,13 +367,17 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
               <div className={styles.langButtons}>
                 {(productLangs.length > 0 ? productLangs : [{ code: 'en', name: 'English' }]).map(
                   (lang) => {
+                    const langStock = getStockForLang(lang.code);
+                    const langOutOfStock = productLangs.length > 0 && langStock <= 0;
                     return (
                       <button
                         key={lang.code}
                         onClick={() => {
+                          if (langOutOfStock) return;
                           setSelectedLang(lang.code);
                           setLangError(false);
                         }}
+                        disabled={langOutOfStock}
                         className={styles.langBtn}
                         style={{
                           border: `2px solid ${
@@ -337,14 +391,17 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
                             selectedLang === lang.code
                               ? 'var(--color-text-primary)'
                               : 'var(--color-white)',
-                          color:
-                            selectedLang === lang.code
+                          color: langOutOfStock
+                            ? 'var(--color-text-muted)'
+                            : selectedLang === lang.code
                               ? 'var(--color-text-inverse)'
                               : 'var(--color-text-primary)',
-                          cursor: 'pointer',
+                          cursor: langOutOfStock ? 'not-allowed' : 'pointer',
+                          opacity: langOutOfStock ? 0.55 : 1,
+                          textDecoration: langOutOfStock ? 'line-through' : 'none',
                         }}
                       >
-                        <span>{getLanguageDisplay(lang.code)}</span>
+                        <span>{getLanguageDisplay(lang.code)}{langOutOfStock ? ' (Out of Stock)' : ''}</span>
                       </button>
                     );
                   }
@@ -370,8 +427,10 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
                 </button>
                 <span className={styles.qtyVal}>{quantity}</span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => setQuantity(Math.min(quantity + 1, Math.max(1, selectedStock || 99)))}
+                  disabled={isOutOfStock || quantity >= selectedStock}
                   className={styles.qtyBtn}
+                  style={{ opacity: isOutOfStock || quantity >= selectedStock ? 0.4 : 1 }}
                   aria-label="Increase quantity"
                 >
                   +
@@ -383,12 +442,19 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
             <div className={styles.actionRow}>
               <button
                 onClick={handleCheckout}
+                disabled={isOutOfStock}
                 className={`btn btn-primary btn-lg ${styles.actionBtn}`}
+                style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
               >
-                Checkout
+                {isOutOfStock ? 'Out of Stock' : 'Checkout'}
               </button>
-              <button onClick={handleBuyNow} className={`btn btn-accent btn-lg ${styles.actionBtn}`}>
-                Buy Now
+              <button
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
+                className={`btn btn-accent btn-lg ${styles.actionBtn}`}
+                style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+              >
+                {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
               </button>
             </div>
 
@@ -455,12 +521,19 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
         <div className={styles.stickyActions}>
           <button
             onClick={handleCheckout}
+            disabled={isOutOfStock}
             className={`btn btn-secondary ${styles.stickyCartBtn}`}
+            style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
           >
-            Checkout
+            {isOutOfStock ? 'Unavailable' : 'Checkout'}
           </button>
-          <button onClick={handleBuyNow} className={`btn btn-accent ${styles.stickyBuyBtn}`}>
-            Buy Now
+          <button
+            onClick={handleBuyNow}
+            disabled={isOutOfStock}
+            className={`btn btn-accent ${styles.stickyBuyBtn}`}
+            style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+          >
+            {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
           </button>
         </div>
       </div>

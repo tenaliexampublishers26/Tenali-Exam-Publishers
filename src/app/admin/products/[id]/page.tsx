@@ -1,10 +1,12 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'motion/react';
 import { useToast } from '@/contexts/ToastContext';
 import { Package, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import ImageUpload from '@/components/admin/ImageUpload';
+import { SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -115,11 +117,18 @@ export default function EditProductPage({ params }: PageProps) {
   return (
     <div className="max-w-4xl space-y-8">
       {/* Page Header */}
-      <div className="admin-page-header">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING_UI}
+        className="admin-page-header"
+      >
         <div className="flex items-center gap-3">
-          <Link href="/admin/products" className="btn btn-ghost btn-sm btn-icon" title="Go Back">
-            <ArrowLeft size={20} />
-          </Link>
+          <motion.div whileTap={{ scale: 0.9 }} transition={SPRING_PRESS}>
+            <Link href="/admin/products" className="btn btn-ghost btn-sm btn-icon" title="Go Back">
+              <ArrowLeft size={20} />
+            </Link>
+          </motion.div>
           <div>
             <h2 className="admin-page-title">
               <Package size={24} />
@@ -128,9 +137,15 @@ export default function EditProductPage({ params }: PageProps) {
             <p className="admin-page-desc">Modify product details, category, pricing, or stock</p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <form onSubmit={handleSubmit} className="admin-card space-y-8">
+      <motion.form
+        onSubmit={handleSubmit}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING_UI, delay: 0.06 }}
+        className="admin-card space-y-8"
+      >
         
         {/* Section 1: Basic Info */}
         <div className="admin-form-section">
@@ -212,14 +227,22 @@ export default function EditProductPage({ params }: PageProps) {
 
         {/* Action Controls */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-(--color-border)">
-          <Link href="/admin/products" className="btn btn-secondary w-full sm:w-auto text-center justify-center">
-            Cancel
-          </Link>
-          <button type="submit" disabled={saving} className="btn btn-primary w-full sm:w-auto justify-center">
+          <motion.div whileTap={{ scale: 0.97 }} transition={SPRING_PRESS} className="w-full sm:w-auto">
+            <Link href="/admin/products" className="btn btn-secondary w-full sm:w-auto text-center justify-center">
+              Cancel
+            </Link>
+          </motion.div>
+          <motion.button
+            type="submit"
+            disabled={saving}
+            whileTap={{ scale: 0.97 }}
+            transition={SPRING_PRESS}
+            className="btn btn-primary w-full sm:w-auto justify-center disabled:opacity-60"
+          >
             {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+          </motion.button>
         </div>
-      </form>
+      </motion.form>
     </div>
   );
 }

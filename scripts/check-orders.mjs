@@ -1,9 +1,16 @@
-import { NextResponse } from 'next/server';
-import { sql } from '@/lib/db';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+import postgres from 'postgres';
 
-export async function GET() {
+const sql = postgres(process.env.DATABASE_URL, { ssl: 'require' });
+
+async function check() {
   try {
-    const orders = await sql`
+    const orders = await sql`SELECT * FROM orders ORDER BY created_at DESC LIMIT 10`;
+    console.log('Total orders in DB:', orders.length);
+    console.log('Orders:', JSON.stringify(orders, null, 2));
+
+    const adminQuery = await sql`
       SELECT 
         o.id, 
         o.order_number as "orderNumber", 
@@ -32,10 +39,14 @@ export async function GET() {
       GROUP BY o.id, u.name, u.email
       ORDER BY o.created_at DESC
     `;
-    
-    return NextResponse.json({ success: true, orders }, { status: 200 });
-  } catch (error) {
-    console.error('Error fetching admin orders:', error);
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+    console.log('Admin Query Count:', adminQuery.length);
+    console.log('Admin Query Result:', JSON.stringify(adminQuery, null, 2));
+
+    process.exit(0);
+  } catch (err) {
+    console.error('Error:', err);
+    process.exit(1);
   }
 }
+
+check();

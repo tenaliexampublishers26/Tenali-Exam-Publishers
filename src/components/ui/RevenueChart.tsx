@@ -11,6 +11,7 @@ interface ChartDataPoint {
 interface RevenueChartProps {
   data: ChartDataPoint[];
   loading?: boolean;
+  showMiniCards?: boolean;
 }
 
 // Utility: generate smooth cubic bezier path through points
@@ -38,7 +39,7 @@ function smoothLine(points: { x: number; y: number }[]): string {
   return path;
 }
 
-export default function RevenueChart({ data, loading = false }: RevenueChartProps) {
+export default function RevenueChart({ data, loading = false, showMiniCards = true }: RevenueChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [isAnimated, setIsAnimated] = useState(false);
@@ -165,25 +166,27 @@ export default function RevenueChart({ data, loading = false }: RevenueChartProp
   return (
     <div ref={containerRef} className="relative w-full">
       {/* Top Summary Mini-Cards */}
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/50 dark:border-blue-800/30">
-          <div className="size-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-          <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">Revenue Trend</span>
-          <span className="text-[11px] font-extrabold text-blue-900 dark:text-blue-100">{formatPrice(totalRevenue)}</span>
+      {showMiniCards && (
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/50 dark:border-blue-800/30">
+            <div className="size-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+            <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">Revenue</span>
+            <span className="text-[11px] font-extrabold text-blue-900 dark:text-blue-100">{formatPrice(totalRevenue)}</span>
+          </div>
+          <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-violet-50/80 dark:bg-violet-950/40 border border-violet-200/50 dark:border-violet-800/30">
+            <div className="size-2 rounded-sm bg-violet-500" />
+            <span className="text-[11px] font-bold text-violet-700 dark:text-violet-300">Orders</span>
+            <span className="text-[11px] font-extrabold text-violet-900 dark:text-violet-100">{totalOrders}</span>
+          </div>
+          <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-800/30">
+            <svg width="10" height="10" viewBox="0 0 10 2" className="text-emerald-500">
+              <line x1="0" y1="1" x2="10" y2="1" stroke="currentColor" strokeWidth="2" strokeDasharray="3 2" />
+            </svg>
+            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Avg</span>
+            <span className="text-[11px] font-extrabold text-emerald-900 dark:text-emerald-100">{formatPrice(avgRevenue)}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200/50 dark:border-violet-800/30">
-          <div className="size-2.5 rounded-sm bg-violet-500/70" />
-          <span className="text-[11px] font-bold text-violet-700 dark:text-violet-300">Orders</span>
-          <span className="text-[11px] font-extrabold text-violet-900 dark:text-violet-100">{totalOrders}</span>
-        </div>
-        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-800/30">
-          <svg width="10" height="10" viewBox="0 0 10 2" className="text-emerald-500">
-            <line x1="0" y1="1" x2="10" y2="1" stroke="currentColor" strokeWidth="2" strokeDasharray="3 2" />
-          </svg>
-          <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Avg</span>
-          <span className="text-[11px] font-extrabold text-emerald-900 dark:text-emerald-100">{formatPrice(avgRevenue)}</span>
-        </div>
-      </div>
+      )}
 
       <svg
         viewBox={`0 0 ${width} ${height}`}
