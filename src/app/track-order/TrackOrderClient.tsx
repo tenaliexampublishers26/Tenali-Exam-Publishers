@@ -359,20 +359,56 @@ export default function TrackOrderClient(): React.JSX.Element {
           )}
 
           {/* Delivery Address Details */}
-          {tracking.deliveryAddress && (
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-(--color-border-light) mb-5 text-xs">
-              <div className="font-bold text-(--color-text-primary) flex items-center gap-1.5 mb-1">
-                <MapPin size={14} className="text-blue-600" />
-                Delivery Address
+          {(() => {
+            if (!tracking.deliveryAddress) return null;
+            let addr: any = tracking.deliveryAddress;
+            if (typeof addr === 'string') {
+              try {
+                addr = JSON.parse(addr);
+              } catch {
+                return null;
+              }
+            }
+            if (!addr || typeof addr !== 'object') return null;
+
+            const name = addr.fullName || addr.full_name || addr.name || '';
+            const mobile = addr.mobile || addr.phone || '';
+            const house = addr.houseOrFlat || addr.house_or_flat || addr.house_flat || '';
+            const street = addr.street || '';
+            const area = addr.area || '';
+            const city = addr.city || '';
+            const state = addr.state || '';
+            const pin = addr.pinCode || addr.pin_code || addr.pincode || '';
+
+            const streetLine = [house, street].filter(Boolean).join(', ');
+            const cityLine = [city, state].filter(Boolean).join(', ');
+
+            if (!name && !streetLine && !cityLine) return null;
+
+            return (
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-(--color-border-light) mb-5 text-xs">
+                <div className="font-bold text-(--color-text-primary) flex items-center gap-1.5 mb-2">
+                  <MapPin size={15} className="text-blue-600" />
+                  Delivery Address
+                </div>
+                <div className="text-(--color-text-secondary) leading-relaxed space-y-0.5">
+                  {(name || mobile) && (
+                    <div className="font-bold text-sm text-(--color-text-primary)">
+                      {name} {mobile && <span className="font-normal text-xs text-(--color-text-muted)">({mobile})</span>}
+                    </div>
+                  )}
+                  {streetLine && <div>{streetLine}</div>}
+                  {area && <div>{area}</div>}
+                  {(cityLine || pin) && (
+                    <div>
+                      {cityLine}
+                      {pin && <> — <span className="font-semibold text-(--color-text-primary)">{pin}</span></>}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-(--color-text-secondary) leading-relaxed">
-                <strong>{tracking.deliveryAddress.fullName}</strong> — {tracking.deliveryAddress.mobile}<br />
-                {tracking.deliveryAddress.houseOrFlat}, {tracking.deliveryAddress.street}
-                {tracking.deliveryAddress.area && `, ${tracking.deliveryAddress.area}`}<br />
-                {tracking.deliveryAddress.city}, {tracking.deliveryAddress.state} — {tracking.deliveryAddress.pinCode}
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Speed Post Tracking ID Panel */}
           {tracking.trackingNumber ? (

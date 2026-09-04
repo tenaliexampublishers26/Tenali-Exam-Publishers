@@ -52,7 +52,16 @@ export async function GET(request: Request) {
     }
 
     const order = orderResult[0];
-    const address = order.deliveryAddress || {};
+    let address: Record<string, any> = {};
+    if (typeof order.deliveryAddress === 'string') {
+      try {
+        address = JSON.parse(order.deliveryAddress);
+      } catch {
+        address = {};
+      }
+    } else if (order.deliveryAddress && typeof order.deliveryAddress === 'object') {
+      address = order.deliveryAddress;
+    }
 
     // Match the entered contact against the email or mobile captured at checkout or user account
     const enteredContact = normalizeContact(contactRaw);
@@ -105,7 +114,7 @@ export async function GET(request: Request) {
           carrier: order.carrier,
           total: order.total,
           createdAt: order.createdAt,
-          deliveryAddress: order.deliveryAddress,
+          deliveryAddress: address,
           items: itemsResult,
           cancellable,
           cancelDeadline,

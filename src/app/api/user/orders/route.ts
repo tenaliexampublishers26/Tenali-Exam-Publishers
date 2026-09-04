@@ -103,7 +103,15 @@ export async function GET(request: Request) {
         ORDER BY o.created_at DESC
       `;
 
-    return NextResponse.json({ orders }, { status: 200 });
+    const mappedOrders = orders.map((o: any) => {
+      let addr = o.deliveryAddress;
+      if (typeof addr === 'string') {
+        try { addr = JSON.parse(addr); } catch { }
+      }
+      return { ...o, deliveryAddress: addr };
+    });
+
+    return NextResponse.json({ orders: mappedOrders }, { status: 200 });
   } catch (error) {
     console.error('Error fetching user orders:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });

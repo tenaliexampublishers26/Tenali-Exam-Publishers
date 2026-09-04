@@ -46,6 +46,11 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     `;
 
     order.items = itemsResult;
+    if (typeof order.deliveryAddress === 'string') {
+      try {
+        order.deliveryAddress = JSON.parse(order.deliveryAddress);
+      } catch {}
+    }
 
     return NextResponse.json({ order }, { status: 200 });
   } catch (error) {

@@ -6,7 +6,7 @@ import { formatPrice, formatDateTime } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { invalidateCache } from '@/lib/api-cache';
-import { FileText, Truck, Copy, Check, ExternalLink, Ban } from 'lucide-react';
+import { FileText, Truck, Copy, Check, ExternalLink, Ban, MapPin } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -180,6 +180,54 @@ export default function OrderDetailPage({ params }: PageProps): React.JSX.Elemen
           <span style={{ fontWeight: 700 }}>{formatPrice(order.total)}</span>
         </div>
       </div>
+
+      {/* Delivery Address Details */}
+      {(() => {
+        if (!order.deliveryAddress) return null;
+        let addr: any = order.deliveryAddress;
+        if (typeof addr === 'string') {
+          try { addr = JSON.parse(addr); } catch { return null; }
+        }
+        if (!addr || typeof addr !== 'object') return null;
+
+        const name = addr.fullName || addr.full_name || addr.name || '';
+        const mobile = addr.mobile || addr.phone || '';
+        const house = addr.houseOrFlat || addr.house_or_flat || addr.house_flat || '';
+        const street = addr.street || '';
+        const area = addr.area || '';
+        const city = addr.city || '';
+        const state = addr.state || '';
+        const pin = addr.pinCode || addr.pin_code || addr.pincode || '';
+
+        const streetLine = [house, street].filter(Boolean).join(', ');
+        const cityLine = [city, state].filter(Boolean).join(', ');
+
+        if (!name && !streetLine && !cityLine) return null;
+
+        return (
+          <div className="card" style={{ padding: '20px 24px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              <MapPin size={16} color="var(--color-primary)" />
+              <span>Delivery Address</span>
+            </div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+              {(name || mobile) && (
+                <div style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  {name} {mobile && <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>({mobile})</span>}
+                </div>
+              )}
+              {streetLine && <div>{streetLine}</div>}
+              {area && <div>{area}</div>}
+              {(cityLine || pin) && (
+                <div>
+                  {cityLine}
+                  {pin && <> — <strong style={{ color: 'var(--color-text-primary)' }}>{pin}</strong></>}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Speed Post tracking ID panel */}
       {order.trackingNumber && order.status !== 'cancelled' && (
