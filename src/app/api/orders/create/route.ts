@@ -22,6 +22,8 @@ export async function POST(request: Request) {
     // Generate unique order ID
     const orderId = generateOrderId();
 
+    const addressJson = typeof deliveryAddress === 'string' ? deliveryAddress : JSON.stringify(deliveryAddress);
+
     // 1. Insert order into Database
     const orderResult = await sql`
       INSERT INTO orders (
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
         ${subtotal},
         ${deliveryCharge},
         ${total},
-        ${JSON.stringify(deliveryAddress)}::jsonb,
+        ${addressJson}::jsonb,
         'placed',
         'paid',
         'India Post Speed Post'

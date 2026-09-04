@@ -9,9 +9,36 @@ import { AdminTableRow, AdminModal, SPRING_UI, SPRING_PRESS } from '@/components
 
 import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
 
+function parseDeliveryAddress(raw: any) {
+  if (!raw) return null;
+  let addr = raw;
+  while (typeof addr === 'string') {
+    try {
+      addr = JSON.parse(addr);
+    } catch {
+      break;
+    }
+  }
+  if (!addr || typeof addr !== 'object') return null;
+  return {
+    fullName: addr.fullName || addr.full_name || addr.name || '',
+    mobile: addr.mobile || addr.phone || addr.mobile_number || addr.contact || '',
+    email: addr.email || '',
+    houseOrFlat: addr.houseOrFlat || addr.house_or_flat || addr.doorNo || addr.flat || '',
+    street: addr.street || addr.addressLine1 || addr.line1 || '',
+    area: addr.area || addr.landmark || addr.addressLine2 || addr.line2 || '',
+    city: addr.city || addr.town || addr.district || '',
+    state: addr.state || '',
+    pinCode: addr.pinCode || addr.pin_code || addr.pincode || addr.postalCode || '',
+  };
+}
+
 export default function AdminOrdersPage() {
   const cachedInitial = getCachedData('/api/admin/orders');
-  const [orders, setOrders] = useState<any[]>(cachedInitial ? cachedInitial.orders || [] : []);
+  const initialOrders = cachedInitial && cachedInitial.orders 
+    ? cachedInitial.orders.map((o: any) => ({ ...o, deliveryAddress: parseDeliveryAddress(o.deliveryAddress) }))
+    : [];
+  const [orders, setOrders] = useState<any[]>(initialOrders);
   const [loading, setLoading] = useState(!cachedInitial);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -44,13 +71,19 @@ export default function AdminOrdersPage() {
     try {
       const headers = ['Order ID', 'Date', 'Customer Name', 'Email', 'Items', 'Total', 'Payment Status', 'Order Status', 'Delivery Address'];
       const rows = data.map(order => {
-        const address = order.deliveryAddress ? `${order.deliveryAddress.houseOrFlat} ${order.deliveryAddress.street}, ${order.deliveryAddress.city}, ${order.deliveryAddress.state} - ${order.deliveryAddress.pinCode}` : '';
+        const addr = parseDeliveryAddress(order.deliveryAddress);
+        const address = addr ? [
+          [addr.houseOrFlat, addr.street].filter(Boolean).join(' '),
+          addr.area,
+          [addr.city, addr.state].filter(Boolean).join(', '),
+          addr.pinCode ? `- ${addr.pinCode}` : ''
+        ].filter(Boolean).join(', ') : '';
         const items = order.items ? order.items.map((i:any) => `${i.productName} (${i.language}) x${i.quantity}`).join('; ') : '';
         return [
           order.orderNumber,
           new Date(order.createdAt).toLocaleDateString(),
-          order.userName || 'Guest',
-          order.userEmail || '',
+          order.userName || addr?.fullName || 'Guest',
+          order.userEmail || addr?.email || '',
           items,
           order.total,
           order.paymentStatus,
@@ -79,7 +112,12 @@ export default function AdminOrdersPage() {
   const fetchOrders = async (force = false) => {
     try {
       const data = await fetchWithCache('/api/admin/orders', { ttl: 15000, forceRefresh: force });
-      setOrders(data.orders || []);
+      const rawOrders = data.orders || [];
+      const normalizedOrders = rawOrders.map((o: any) => ({
+        ...o,
+        deliveryAddress: parseDeliveryAddress(o.deliveryAddress),
+      }));
+      setOrders(normalizedOrders);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load orders');
@@ -144,9 +182,24 @@ export default function AdminOrdersPage() {
   };
 
   const handleCopyDetails = (order: any) => {
-    if (!order.deliveryAddress) return;
-    const addr = order.deliveryAddress;
-    const text = `BY INDIA POST PARCEL(CONTRACTUAL)\nCONTRACT NO.41120154-TENALI EXAMS PUBLISHERS\nCUSTOMER ID:${order.orderNumber}\n\nTo\n${addr.fullName}\n${addr.houseOrFlat}, ${addr.street}${addr.area ? '\n' + addr.area : ''}\n${addr.city}, ${addr.state} - ${addr.pinCode}\nCELL: ${addr.mobile}\n\nFrom:\nTENALI EXAMS PUBLISHERS\nD.NO.19-308\nNAMBURU-522508\nGUNTUR-DIST\nCELL 7396977544`;
+    const addr = parseDeliveryAddress(order.deliveryAddress);
+    if (!addr) return;
+    const addressLine1 = [addr.houseOrFlat, addr.street].filter(Boolean).join(', ');
+    const addressLine2 = addr.area || '';
+    const cityStatePin = [
+      [addr.city, addr.state].filter(Boolean).join(', '),
+      addr.pinCode ? `- ${addr.pinCode}` : '',
+    ].filter(Boolean).join(' ');
+
+    const fullToAddress = [
+      addr.fullName,
+      addressLine1,
+      addressLine2,
+      cityStatePin,
+      addr.mobile ? `CELL: ${addr.mobile}` : '',
+    ].filter(Boolean).join('\n');
+
+    const text = `BY INDIA POST PARCEL(CONTRACTUAL)\nCONTRACT NO.41120154-TENALI EXAMS PUBLISHERS\nCUSTOMER ID:${order.orderNumber}\n\nTo\n${fullToAddress}\n\nFrom:\nTENALI EXAMS PUBLISHERS\nD.NO.19-308\nNAMBURU-522508\nGUNTUR-DIST\nCELL 7396977544`;
 
     navigator.clipboard.writeText(text);
     setCopiedId(order.id);
@@ -155,8 +208,8 @@ export default function AdminOrdersPage() {
   };
 
   const handlePrintSlip = (order: any) => {
-    if (!order.deliveryAddress) return;
-    const addr = order.deliveryAddress;
+    const addr = parseDeliveryAddress(order.deliveryAddress);
+    if (!addr) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -213,11 +266,11 @@ export default function AdminOrdersPage() {
 
           <div class="to-section">
             <div class="to-title">To</div>
-            <div style="font-weight: bold;">${addr.fullName}</div>
-            <div>${addr.houseOrFlat}, ${addr.street}</div>
+            <div style="font-weight: bold;">${addr.fullName || 'CUSTOMER'}</div>
+            <div>${[addr.houseOrFlat, addr.street].filter(Boolean).join(', ')}</div>
             ${addr.area ? `<div>${addr.area}</div>` : ''}
-            <div>${addr.city}, ${addr.state} - ${addr.pinCode}</div>
-            <div style="margin-top: 6px;">CELL: ${addr.mobile}</div>
+            <div>${[addr.city, addr.state].filter(Boolean).join(', ')}${addr.pinCode ? ` - ${addr.pinCode}` : ''}</div>
+            <div style="margin-top: 6px;">CELL: ${addr.mobile || 'N/A'}</div>
           </div>
 
           <div class="from-section">
@@ -643,7 +696,11 @@ export default function AdminOrdersPage() {
                         <td>
                           {order.deliveryAddress ? (
                             <motion.button
-                              onClick={() => { setDetailsModalOrder(order); setTrackingInput(order.trackingNumber || ''); }}
+                              onClick={() => {
+                                const parsed = parseDeliveryAddress(order.deliveryAddress);
+                                setDetailsModalOrder({ ...order, deliveryAddress: parsed });
+                                setTrackingInput(order.trackingNumber || '');
+                              }}
                               whileTap={{ scale: 0.94 }}
                               transition={SPRING_PRESS}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 rounded-lg text-xs font-bold transition-colors shadow-sm"

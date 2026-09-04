@@ -33,7 +33,19 @@ export async function GET() {
       ORDER BY o.created_at DESC
     `;
     
-    return NextResponse.json({ success: true, orders }, { status: 200 });
+    const mappedOrders = orders.map((o: any) => {
+      let addr = o.deliveryAddress;
+      while (typeof addr === 'string') {
+        try {
+          addr = JSON.parse(addr);
+        } catch {
+          break;
+        }
+      }
+      return { ...o, deliveryAddress: addr };
+    });
+    
+    return NextResponse.json({ success: true, orders: mappedOrders }, { status: 200 });
   } catch (error) {
     console.error('Error fetching admin orders:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });

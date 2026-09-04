@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     }
 
     const orderId = generateOrderId();
+    const addressJson = typeof deliveryAddress === 'string' ? deliveryAddress : JSON.stringify(deliveryAddress);
 
     const orderResult = await sql`
       INSERT INTO orders (
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
         ${subtotal},
         ${deliveryCharge},
         ${total},
-        ${JSON.stringify(deliveryAddress)}::jsonb,
+        ${addressJson}::jsonb,
         'placed',
         'paid',
         'India Post Speed Post',

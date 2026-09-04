@@ -3,20 +3,34 @@ import html2canvas from 'html2canvas';
 
 export interface PostalSlipData {
   orderNumber: string;
-  deliveryAddress: {
-    fullName: string;
-    houseOrFlat: string;
-    street: string;
-    area?: string;
-    city: string;
-    state: string;
-    pinCode: string;
-    mobile: string;
+  deliveryAddress: any;
+}
+
+export function normalizePostalAddress(raw: any) {
+  let addr = raw;
+  while (typeof addr === 'string') {
+    try {
+      addr = JSON.parse(addr);
+    } catch {
+      break;
+    }
+  }
+  addr = addr && typeof addr === 'object' ? addr : {};
+  return {
+    fullName: addr.fullName || addr.full_name || addr.name || '',
+    houseOrFlat: addr.houseOrFlat || addr.house_or_flat || addr.doorNo || addr.flat || '',
+    street: addr.street || addr.addressLine1 || addr.line1 || '',
+    area: addr.area || addr.landmark || addr.addressLine2 || addr.line2 || '',
+    city: addr.city || addr.town || addr.district || '',
+    state: addr.state || '',
+    pinCode: addr.pinCode || addr.pin_code || addr.pincode || addr.postalCode || '',
+    mobile: addr.mobile || addr.phone || addr.mobile_number || addr.contact || '',
   };
 }
 
 export async function downloadPostalSlipPDF(data: PostalSlipData, elementId?: string) {
-  const { orderNumber, deliveryAddress: addr } = data;
+  const { orderNumber } = data;
+  const addr = normalizePostalAddress(data.deliveryAddress);
 
   try {
     // Attempt high-res html2canvas capture if element exists
@@ -174,7 +188,8 @@ export async function downloadPostalSlipPDF(data: PostalSlipData, elementId?: st
 }
 
 export function printPostalSlipWindow(data: PostalSlipData) {
-  const { orderNumber, deliveryAddress: addr } = data;
+  const { orderNumber } = data;
+  const addr = normalizePostalAddress(data.deliveryAddress);
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
@@ -386,19 +401,19 @@ export function printPostalSlipWindow(data: PostalSlipData) {
             <div>
               <div>
                 <span class="to-badge">TO:</span>
-                <span class="to-name">${addr.fullName}</span>
+                <span class="to-name">${addr.fullName || 'CUSTOMER'}</span>
               </div>
               <div class="address-lines">
-                <div>${addr.houseOrFlat}, ${addr.street}</div>
+                <div>${[addr.houseOrFlat, addr.street].filter(Boolean).join(', ')}</div>
                 ${addr.area ? `<div>${addr.area}</div>` : ''}
-                <div style="font-weight: 800;">${addr.city}, ${addr.state}</div>
-                <div><span class="phone-chip">CELL: ${addr.mobile}</span></div>
+                <div style="font-weight: 800;">${[addr.city, addr.state].filter(Boolean).join(', ')}</div>
+                ${addr.mobile ? `<div><span class="phone-chip">CELL: ${addr.mobile}</span></div>` : ''}
               </div>
             </div>
 
             <div class="pin-box">
               <div class="pin-title">DESTINATION PIN</div>
-              <div class="pin-number">${addr.pinCode}</div>
+              <div class="pin-number">${addr.pinCode || '------'}</div>
             </div>
           </div>
 

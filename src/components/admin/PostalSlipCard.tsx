@@ -6,16 +6,7 @@ import { downloadPostalSlipPDF, printPostalSlipWindow } from '@/utils/postalSlip
 
 interface PostalSlipCardProps {
   orderNumber: string;
-  deliveryAddress: {
-    fullName: string;
-    houseOrFlat: string;
-    street: string;
-    area?: string;
-    city: string;
-    state: string;
-    pinCode: string;
-    mobile: string;
-  };
+  deliveryAddress: any;
 }
 
 // SVG Barcode Generator for Order / Customer ID
@@ -59,15 +50,52 @@ function BarcodeSVG({ code }: { code: string }) {
   );
 }
 
-export default function PostalSlipCard({ orderNumber, deliveryAddress: addr }: PostalSlipCardProps) {
+export default function PostalSlipCard({ orderNumber, deliveryAddress: rawAddr }: PostalSlipCardProps) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+  // Safely parse JSON if deliveryAddress is passed as string
+  let parsed: any = rawAddr;
+  while (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      break;
+    }
+  }
+  parsed = parsed && typeof parsed === 'object' ? parsed : {};
+
+  const addr = {
+    fullName: parsed.fullName || parsed.full_name || parsed.name || '',
+    houseOrFlat: parsed.houseOrFlat || parsed.house_or_flat || parsed.doorNo || parsed.flat || '',
+    street: parsed.street || parsed.addressLine1 || parsed.line1 || '',
+    area: parsed.area || parsed.landmark || parsed.addressLine2 || parsed.line2 || '',
+    city: parsed.city || parsed.town || parsed.district || '',
+    state: parsed.state || '',
+    pinCode: parsed.pinCode || parsed.pin_code || parsed.pincode || parsed.postalCode || '',
+    mobile: parsed.mobile || parsed.phone || parsed.mobile_number || parsed.contact || '',
+  };
+
   const containerId = `postal-slip-preview-${orderNumber.replace(/[^a-zA-Z0-9-]/g, '_')}`;
 
   const handleCopyText = () => {
-    const text = `BY INDIA POST PARCEL (CONTRACTUAL)\nCONTRACT NO. 41120154 - TENALI EXAMS PUBLISHERS\nCUSTOMER ID: ${orderNumber}\n\nTo:\n${addr.fullName}\n${addr.houseOrFlat}, ${addr.street}${addr.area ? '\n' + addr.area : ''}\n${addr.city}, ${addr.state} - ${addr.pinCode}\nCELL: ${addr.mobile}\n\nFrom:\nTENALI EXAMS PUBLISHERS\nD.NO. 19-308\nNAMBURU-522508\nGUNTUR-DIST, ANDHRA PRADESH\nCELL: 7396977544`;
+    const addressLine1 = [addr.houseOrFlat, addr.street].filter(Boolean).join(', ');
+    const addressLine2 = addr.area || '';
+    const cityStatePin = [
+      [addr.city, addr.state].filter(Boolean).join(', '),
+      addr.pinCode ? `- ${addr.pinCode}` : '',
+    ].filter(Boolean).join(' ');
+
+    const fullToAddress = [
+      addr.fullName,
+      addressLine1,
+      addressLine2,
+      cityStatePin,
+      addr.mobile ? `CELL: ${addr.mobile}` : '',
+    ].filter(Boolean).join('\n');
+
+    const text = `BY INDIA POST PARCEL (CONTRACTUAL)\nCONTRACT NO. 41120154 - TENALI EXAMS PUBLISHERS\nCUSTOMER ID: ${orderNumber}\n\nTo:\n${fullToAddress}\n\nFrom:\nTENALI EXAMS PUBLISHERS\nD.NO. 19-308\nNAMBURU-522508\nGUNTUR-DIST, ANDHRA PRADESH\nCELL: 7396977544`;
 
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -202,19 +230,21 @@ export default function PostalSlipCard({ orderNumber, deliveryAddress: addr }: P
                   TO:
                 </span>
                 <span className="text-sm font-black text-black uppercase tracking-wide">
-                  {addr.fullName}
+                  {addr.fullName || 'CUSTOMER'}
                 </span>
               </div>
 
               <div className="pl-7 text-xs font-semibold text-slate-900 leading-snug space-y-0.5">
-                <div>{addr.houseOrFlat}, {addr.street}</div>
+                <div>{[addr.houseOrFlat, addr.street].filter(Boolean).join(', ')}</div>
                 {addr.area && <div>{addr.area}</div>}
-                <div className="font-bold text-black">{addr.city}, {addr.state}</div>
-                <div className="pt-1 flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1 bg-black text-white font-mono font-bold text-[11px] px-2 py-0.5 rounded-xs">
-                    <Phone size={10} /> CELL: {addr.mobile}
-                  </span>
-                </div>
+                <div className="font-bold text-black">{[addr.city, addr.state].filter(Boolean).join(', ')}</div>
+                {addr.mobile && (
+                  <div className="pt-1 flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 bg-black text-white font-mono font-bold text-[11px] px-2 py-0.5 rounded-xs">
+                      <Phone size={10} /> CELL: {addr.mobile}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -224,7 +254,7 @@ export default function PostalSlipCard({ orderNumber, deliveryAddress: addr }: P
                 DESTINATION PIN
               </div>
               <div className="text-xl font-black text-black tracking-widest font-mono mt-0.5 border-t border-black/20 pt-0.5">
-                {addr.pinCode}
+                {addr.pinCode || '------'}
               </div>
             </div>
           </div>
