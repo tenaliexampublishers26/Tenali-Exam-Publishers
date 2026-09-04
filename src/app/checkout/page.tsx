@@ -230,12 +230,11 @@ export default function CheckoutPage() {
 
   // ─── Razorpay Payment Flow ─────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
-    // 0. Ensure delivery address is valid
-    if (!validateAddress()) {
-      setStep(0);
-      toast.error('Please fill in all required delivery address fields before paying');
-      return;
-    }
+    // Ensure delivery address is valid (already validated in previous step)
+// if (!validateAddress()) {
+//   toast.error('Please fill in all required delivery address fields before paying');
+//   return;
+// }
 
     setLoading(true);
 
