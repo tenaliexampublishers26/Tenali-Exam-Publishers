@@ -92,6 +92,7 @@ export default function CheckoutPage() {
   const toast = useToast();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isOrderCompleted, setIsOrderCompleted] = useState(false);
 
   const [address, setAddress] = useState<Address>({
     fullName: '',
@@ -159,6 +160,18 @@ export default function CheckoutPage() {
     );
   }
 
+  if (isOrderCompleted) {
+    return (
+      <div style={{ textAlign: 'center', padding: '100px 20px', maxWidth: '450px', margin: '0 auto' }}>
+        <div style={{ display: 'inline-flex', padding: '24px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%', marginBottom: '24px', color: '#10B981' }}>
+          <Check size={48} strokeWidth={2.5} />
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '8px' }}>Payment Successful!</h1>
+        <p style={{ color: 'var(--color-text-muted)' }}>Redirecting you to your order confirmation...</p>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 20px', maxWidth: '400px', margin: '0 auto' }}>
@@ -178,8 +191,8 @@ export default function CheckoutPage() {
     );
   }
 
-  // Redirect if cart is empty
-  if (items.length === 0) {
+  // Redirect if cart is empty (only when not in middle of successful order placement)
+  if (items.length === 0 && !isOrderCompleted) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 20px', maxWidth: '450px', margin: '0 auto' }}>
         <div style={{ display: 'inline-flex', padding: '24px', background: 'var(--color-bg-page)', borderRadius: '50%', marginBottom: '24px', color: 'var(--color-primary)' }}>
@@ -217,6 +230,13 @@ export default function CheckoutPage() {
 
   // ─── Razorpay Payment Flow ─────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
+    // 0. Ensure delivery address is valid
+    if (!validateAddress()) {
+      setStep(0);
+      toast.error('Please fill in all required delivery address fields before paying');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -228,9 +248,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 2. Create a Razorpay order on the server — the server recomputes the
-      // total from live prices and validates stock; it does not trust the
-      // client-calculated `total` below.
+      // 2. Create a Razorpay order on the server
       const orderRes = await fetch('/api/payment/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -260,9 +278,6 @@ export default function CheckoutPage() {
         return;
       }
 
-      // If the live price differs from what the cart showed (e.g. an admin
-      // changed a price while this tab was open), let the customer know
-      // before their card is charged rather than silently using either figure.
       if (typeof orderData.total === 'number' && Math.abs(orderData.total - total) > 0.5) {
         toast.error('Prices were just updated. Please review your cart before paying again.');
         setLoading(false);
@@ -357,6 +372,7 @@ export default function CheckoutPage() {
               localStorage.setItem('tep_orders', JSON.stringify(ordersList));
             } catch {}
 
+            setIsOrderCompleted(true);
             clearCart();
 
             if (user?.id) {
@@ -560,9 +576,17 @@ export default function CheckoutPage() {
               {renderField('state', 'State', 'state')}
               {renderField('pinCode', 'PIN Code', 'pinCode', 'text', '6-digit PIN code')}
             </div>
+            <div style={{ marginTop: '20px', padding: '14px 18px', background: 'var(--color-bg-page)', borderRadius: '14px', border: '1px solid var(--color-border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Order Total ({items.length} item{items.length > 1 ? 's' : ''}): </span>
+                <strong style={{ fontSize: '1.05rem', color: 'var(--color-text-primary)' }}>{formatPrice(total)}</strong>
+                <span style={{ marginLeft: '8px', fontSize: '0.75rem', color: '#10B981', fontWeight: 650 }}>FREE Postal Delivery</span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Secure Razorpay UPI & Cards</span>
+            </div>
             <div className={styles.formActions}>
-              <button onClick={handleAddressContinue} className={`btn btn-primary btn-lg ${styles.continueBtn}`}>
-                Continue to Review
+              <button type="button" onClick={handleAddressContinue} className={`btn btn-primary btn-lg ${styles.continueBtn}`}>
+                Proceed to Payment ({formatPrice(total)}) →
               </button>
             </div>
           </div>
@@ -576,8 +600,8 @@ export default function CheckoutPage() {
                 <h2 className={styles.cardTitleInHeader}>
                   Delivery Address
                 </h2>
-                <button onClick={() => setStep(0)} className="btn btn-ghost btn-sm" style={{ minHeight: '36px', borderRadius: '10px' }}>
-                  Edit
+                <button type="button" onClick={() => setStep(0)} className="btn btn-ghost btn-sm" style={{ minHeight: '36px', borderRadius: '10px' }}>
+                  Edit Address
                 </button>
               </div>
               <div className={styles.addressReviewText}>
@@ -666,13 +690,13 @@ export default function CheckoutPage() {
               </div>
 
               <div className={styles.reviewActions}>
-                <button onClick={() => setStep(0)} className={`btn btn-secondary btn-lg ${styles.backBtn}`}>
+                <button type="button" onClick={() => setStep(0)} className={`btn btn-secondary btn-lg ${styles.backBtn}`}>
                   <ArrowLeft size={18} style={{ marginRight: '8px' }} />
                   Back
                 </button>
-                <button onClick={handlePlaceOrder} disabled={loading} className={`btn btn-primary btn-lg ${styles.payBtn}`}>
+                <button type="button" onClick={handlePlaceOrder} disabled={loading} className={`btn btn-primary btn-lg ${styles.payBtn}`}>
                   {loading ? (
-                    'Opening Payment...'
+                    'Opening Payment Gateway...'
                   ) : (
                     <>
                       <CreditCard size={18} style={{ marginRight: '8px' }} />
