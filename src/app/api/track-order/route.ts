@@ -23,23 +23,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Order ID and contact details are required' }, { status: 400 });
     }
 
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderIdRaw);
+    const cleanOrderId = orderIdRaw.replace(/^#/, '').trim();
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanOrderId);
 
     const orderResult = isUUID
       ? await sql`
-        SELECT id, order_number as "orderNumber", total, status, payment_status as "paymentStatus",
+        SELECT id, order_number as "orderNumber", user_id as "userId", total, status, payment_status as "paymentStatus",
                tracking_number as "trackingNumber", carrier, dispatched_at as "dispatchedAt", created_at as "createdAt",
                delivery_address as "deliveryAddress"
         FROM orders
-        WHERE id = ${orderIdRaw}::uuid OR order_number = ${orderIdRaw}
+        WHERE id = ${cleanOrderId}::uuid 
+           OR LOWER(order_number) = LOWER(${cleanOrderId})
+           OR LOWER(order_number) = LOWER('TEP-' || ${cleanOrderId})
         LIMIT 1
       `
       : await sql`
-        SELECT id, order_number as "orderNumber", total, status, payment_status as "paymentStatus",
+        SELECT id, order_number as "orderNumber", user_id as "userId", total, status, payment_status as "paymentStatus",
                tracking_number as "trackingNumber", carrier, dispatched_at as "dispatchedAt", created_at as "createdAt",
                delivery_address as "deliveryAddress"
         FROM orders
-        WHERE order_number = ${orderIdRaw}
+        WHERE LOWER(order_number) = LOWER(${cleanOrderId})
+           OR LOWER(order_number) = LOWER('TEP-' || ${cleanOrderId})
         LIMIT 1
       `;
 
@@ -50,22 +54,36 @@ export async function GET(request: Request) {
     const order = orderResult[0];
     const address = order.deliveryAddress || {};
 
-    // Match the entered contact against the email or mobile captured at checkout.
+    // Match the entered contact against the email or mobile captured at checkout or user account
     const enteredContact = normalizeContact(contactRaw);
     const enteredMobile = normalizeMobile(contactRaw);
 
-    const emailMatches = address.email && normalizeContact(address.email) === enteredContact;
-    const mobileMatches = address.mobile && normalizeMobile(address.mobile) === enteredMobile && enteredMobile.length === 10;
+    let userEmail: string | null = null;
+    let userMobile: string | null = null;
+
+    if (order.userId) {
+      try {
+        const userRows = await sql`SELECT email, phone FROM users WHERE id = ${order.userId}::uuid LIMIT 1`;
+        if (userRows.length > 0) {
+          userEmail = userRows[0].email ? normalizeContact(userRows[0].email) : null;
+          userMobile = userRows[0].phone ? normalizeMobile(userRows[0].phone) : null;
+        }
+      } catch {}
+    }
+
+    const emailMatches = (address.email && normalizeContact(address.email) === enteredContact) || (userEmail && userEmail === enteredContact);
+    const mobileMatches = (address.mobile && normalizeMobile(address.mobile) === enteredMobile && enteredMobile.length >= 10) || (userMobile && userMobile === enteredMobile && enteredMobile.length >= 10);
 
     if (!emailMatches && !mobileMatches) {
       return NextResponse.json(
-        { error: 'Order not found. Please check your Order ID and contact details.' },
-        { status: 404 }
+        { error: 'Order found, but the contact details (email or mobile) do not match this order.' },
+        { status: 403 }
       );
     }
 
     const itemsResult = await sql`
-      SELECT product_name as "productName", language, quantity
+      SELECT product_name as "productName", language, quantity, product_image as "productImage",
+             price, bundle_title as "bundleTitle", books_included as "booksIncluded"
       FROM order_items
       WHERE order_id = ${order.id}
     `;
@@ -87,6 +105,7 @@ export async function GET(request: Request) {
           carrier: order.carrier,
           total: order.total,
           createdAt: order.createdAt,
+          deliveryAddress: order.deliveryAddress,
           items: itemsResult,
           cancellable,
           cancelDeadline,

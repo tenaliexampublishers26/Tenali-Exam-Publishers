@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS orders (
     razorpay_order_id VARCHAR(100), -- Razorpay order ID (e.g. order_XXXX)
     tracking_number VARCHAR(100),
     carrier VARCHAR(100),
+    dispatched_at TIMESTAMP WITH TIME ZONE,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

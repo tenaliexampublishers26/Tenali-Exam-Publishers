@@ -9,8 +9,9 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
        return NextResponse.json({ error: 'Order ID required' }, { status: 400 });
     }
 
+    const cleanOrderId = orderId.replace(/^#/, '').trim();
     // Check if orderId is a valid UUID format
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId);
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanOrderId);
 
     const orderResult = isUUID
       ? await sql`
@@ -18,7 +19,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
                status, payment_status as "paymentStatus", tracking_number as "trackingNumber",
                carrier, dispatched_at as "dispatchedAt", created_at as "createdAt", delivery_address as "deliveryAddress"
         FROM orders
-        WHERE id = ${orderId}::uuid OR order_number = ${orderId}
+        WHERE id = ${cleanOrderId}::uuid OR LOWER(order_number) = LOWER(${cleanOrderId})
         LIMIT 1
       `
       : await sql`
@@ -26,7 +27,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
                status, payment_status as "paymentStatus", tracking_number as "trackingNumber",
                carrier, dispatched_at as "dispatchedAt", created_at as "createdAt", delivery_address as "deliveryAddress"
         FROM orders
-        WHERE order_number = ${orderId}
+        WHERE LOWER(order_number) = LOWER(${cleanOrderId})
         LIMIT 1
       `;
 

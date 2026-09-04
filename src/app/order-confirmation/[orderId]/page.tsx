@@ -241,7 +241,7 @@ export default function OrderConfirmationPage(): React.JSX.Element {
 
       {/* Main & Secondary Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px' }}>
-        <Link href="/track-order" className="btn btn-primary btn-lg" style={{ 
+        <Link href={`/track-order?orderId=${orderId}`} className="btn btn-primary btn-lg" style={{ 
           justifyContent: 'center', 
           borderRadius: '16px', 
           minHeight: '52px',

@@ -97,6 +97,7 @@ async function initDatabase() {
         payment_status character varying DEFAULT 'pending',
         tracking_number character varying,
         carrier character varying,
+        dispatched_at timestamp with time zone,
         notes text,
         created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
         updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
