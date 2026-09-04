@@ -3,8 +3,8 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-
 import { User, Package, Heart, MapPin, LogOut, Lock, ChevronRight } from 'lucide-react';
+import s from './profile.module.css';
 
 interface MenuItem {
   href: string;
@@ -25,14 +25,20 @@ export default function AccountLayout({ children }: { children: ReactNode }): Re
 
   if (!isAuthenticated) {
     return (
-      <div style={{ minHeight: 'calc(100vh - 140px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-        <div style={{ textAlign: 'center', maxWidth: '420px', width: '100%', padding: '40px 28px', borderRadius: '28px', background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(226, 232, 240, 0.8)', boxShadow: '0 20px 48px -12px rgba(15, 23, 42, 0.08)' }}>
-          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-            <Lock size={36} strokeWidth={2} />
+      <div className={s.authGate}>
+        <div className={s.authGateCard}>
+          <div className={s.authGateIcon}>
+            <Lock size={36} strokeWidth={1.75} />
           </div>
-          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', fontWeight: 800, marginBottom: '10px', color: '#0f172a' }}>Please Sign In</h1>
-          <p style={{ color: '#64748b', marginBottom: '28px', fontSize: '0.95rem', lineHeight: 1.5 }}>Sign in to your Tenali Exams account to view orders, address book, and saved study materials.</p>
-          <Link href="/login" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center', borderRadius: '12px', fontWeight: 700 }}>
+          <h1 className={s.authGateTitle}>Please Sign In</h1>
+          <p className={s.authGateSub}>
+            Sign in to your Tenali Exams account to view orders, address book, and saved study materials.
+          </p>
+          <Link
+            href="/login"
+            className="btn btn-primary btn-lg"
+            style={{ width: '100%', justifyContent: 'center', borderRadius: '14px', fontWeight: 700 }}
+          >
             Sign In to Continue
           </Link>
         </div>
@@ -43,160 +49,93 @@ export default function AccountLayout({ children }: { children: ReactNode }): Re
   const firstLetter = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <div style={{ paddingBottom: '80px', paddingTop: '20px' }}>
+    <div className={s.pageWrap}>
       <div className="container px-4 md:px-6">
-        
-        {/* Mobile & Tablet Tab Navigation Bar */}
-        <div className="md:hidden mb-6 overflow-x-auto no-scrollbar flex items-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80">
-          {MENU.map(item => {
+
+        {/* ── Mobile Glassmorphic Tab Bar ────────────────── */}
+        <nav className={`${s.mobileTabBar} ${s.mobileOnly}`} aria-label="Account navigation">
+          {MENU.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 prefetch={true}
-                className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
+                className={`${s.mobileTab} ${isActive ? s.mobileTabActive : ''}`}
               >
                 {item.icon}
                 <span>{item.label}</span>
               </Link>
             );
           })}
-        </div>
+        </nav>
 
-        <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-8 items-start">
-          
+        {/* ── Desktop Grid ────────────────────────────────── */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '24px',
+            alignItems: 'start',
+          }}
+          className="md:grid-cols-[260px_1fr]"
+        >
+
           {/* Desktop Sidebar */}
-          <div className="hidden md:block card md:sticky" style={{ 
-            padding: '24px 18px', 
-            top: 'calc(var(--navbar-height) + 24px)',
-            borderRadius: '24px',
-            border: '1px solid var(--color-border-light)',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.03)'
-          }}>
-            {/* Sidebar User Header */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '14px', 
-              padding: '4px 8px 18px 8px',
-            }}>
-              <div style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: '1.2rem',
-                boxShadow: '0 6px 16px rgba(59, 130, 246, 0.25)',
-                flexShrink: 0,
-              }}>
-                {firstLetter}
-              </div>
+          <aside className={`${s.sidebar} ${s.desktopOnly}`} aria-label="Account sidebar">
+            {/* User Header */}
+            <div className={s.sidebarUser}>
+              <div className={s.sidebarAvatar}>{firstLetter}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 750, fontSize: '0.98rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user?.name || 'User'}
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
+                <div className={s.sidebarName}>{user?.name || 'User'}</div>
+                <div className={s.sidebarEmail}>
                   {user?.email || user?.phone || 'Customer Account'}
                 </div>
               </div>
             </div>
 
-            <hr className="divider" style={{ margin: '0 0 16px 0', borderTop: '1px solid var(--color-border-light)' }} />
-            
-            {/* Sidebar Menu Items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {MENU.map(item => {
+            <div className={s.sidebarDivider} />
+
+            {/* Nav Links */}
+            <nav className={s.sidebarMenu}>
+              {MENU.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     prefetch={true}
-                    style={{
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between',
-                      gap: '12px',
-                      padding: '12px 16px', 
-                      borderRadius: '14px',
-                      fontSize: '0.925rem', 
-                      fontWeight: isActive ? 700 : 500,
-                      color: isActive ? '#ffffff' : 'var(--color-text-secondary)',
-                      background: isActive 
-                        ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)' 
-                        : 'transparent',
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                      boxShadow: isActive ? '0 6px 16px rgba(37, 99, 235, 0.25)' : 'none',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'var(--color-bg-page)';
-                        e.currentTarget.style.color = 'var(--color-text-primary)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--color-text-secondary)';
-                      }
-                    }}
+                    className={`${s.sidebarLink} ${isActive ? s.sidebarLinkActive : ''}`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', opacity: isActive ? 1 : 0.75 }}>
-                        {item.icon}
-                      </span> 
+                    <div className={s.sidebarLinkLeft}>
+                      <span className={s.sidebarLinkIcon}>{item.icon}</span>
                       <span>{item.label}</span>
                     </div>
-                    {isActive && <ChevronRight size={16} />}
+                    {isActive && <ChevronRight size={15} />}
                   </Link>
                 );
               })}
-            </div>
+            </nav>
 
-            <hr className="divider" style={{ margin: '18px 0 14px 0', borderTop: '1px solid var(--color-border-light)' }} />
-            
-            {/* Logout Button */}
+            <div className={s.sidebarDivider} style={{ margin: '14px 0' }} />
+
+            {/* Logout */}
             <button
+              type="button"
               onClick={logout}
-              style={{
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px',
-                padding: '12px 16px', 
-                borderRadius: '14px',
-                fontSize: '0.925rem', 
-                fontWeight: 650, 
-                color: '#ef4444',
-                background: 'rgba(239, 68, 68, 0.06)', 
-                border: 'none', 
-                cursor: 'pointer',
-                width: '100%', 
-                textAlign: 'left', 
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)';
-              }}
+              className={s.sidebarLogout}
+              aria-label="Sign out of your account"
             >
-              <LogOut size={18} /> Logout
+              <LogOut size={18} />
+              <span>Sign Out</span>
             </button>
-          </div>
+          </aside>
 
-          {/* Main View Area */}
-          <div style={{ minWidth: 0 }}>{children}</div>
+          {/* Main Content */}
+          <main style={{ minWidth: 0 }} aria-label="Account content">
+            {children}
+          </main>
+
         </div>
       </div>
     </div>
