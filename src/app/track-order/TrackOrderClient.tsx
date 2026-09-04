@@ -198,88 +198,109 @@ export default function TrackOrderClient(): React.JSX.Element {
         </div>
       )}
 
-      {/* Track Form */}
-      <div className="card p-6 md:p-8">
-        <form onSubmit={handleTrack}>
-          <div className="form-group" style={{ marginBottom: '16px' }}>
-            <label className="form-label font-bold text-xs text-(--color-text-primary)" htmlFor="orderId">
-              Order ID
-            </label>
-            <input
-              id="orderId"
-              type="text"
-              className="form-input font-mono"
-              placeholder="e.g. TEP-309681-6559"
-              value={orderId}
-              onChange={(e) => {
-                setOrderId(e.target.value);
-                setError('');
-              }}
-            />
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '24px' }}>
-            <div className="flex items-center justify-between mb-1">
-              <label className="form-label font-bold text-xs text-(--color-text-primary) m-0" htmlFor="contact">
-                Email Address or 10-Digit Mobile Number
+      {/* Track Form (only shown when not viewing a tracked order) */}
+      {!tracking && (
+        <div className="card p-6 md:p-8">
+          <form onSubmit={handleTrack}>
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label className="form-label font-bold text-xs text-(--color-text-primary)" htmlFor="orderId">
+                Order ID
               </label>
-              {user && (
-                <span className="text-[11px] text-blue-600 cursor-pointer font-medium hover:underline" onClick={() => setContact(user.phone || user.email || '')}>
-                  Use My Profile
+              <input
+                id="orderId"
+                type="text"
+                className="form-input font-mono"
+                placeholder="e.g. TEP-309681-6559"
+                value={orderId}
+                onChange={(e) => {
+                  setOrderId(e.target.value);
+                  setError('');
+                }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '24px' }}>
+              <div className="flex items-center justify-between mb-1">
+                <label className="form-label font-bold text-xs text-(--color-text-primary) m-0" htmlFor="contact">
+                  Email Address or 10-Digit Mobile Number
+                </label>
+                {user && (
+                  <span className="text-[11px] text-blue-600 cursor-pointer font-medium hover:underline" onClick={() => setContact(user.phone || user.email || '')}>
+                    Use My Profile
+                  </span>
+                )}
+              </div>
+              <input
+                id="contact"
+                type="text"
+                className="form-input"
+                placeholder="e.g. 9398845947 or your@email.com"
+                value={contact}
+                onChange={(e) => {
+                  setContact(e.target.value);
+                  setError('');
+                }}
+              />
+            </div>
+
+            {error && (
+              <div
+                style={{
+                  padding: '12px 16px',
+                  background: 'var(--color-error-bg)',
+                  color: 'var(--color-error)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.85rem',
+                  marginBottom: '16px',
+                  lineHeight: 1.4,
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-lg"
+              style={{ width: '100%', justifyContent: 'center' }}
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <Truck size={18} className="animate-bounce" /> Checking Postal Tracking...
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <Truck size={18} /> Track Order Status
                 </span>
               )}
-            </div>
-            <input
-              id="contact"
-              type="text"
-              className="form-input"
-              placeholder="e.g. 9398845947 or your@email.com"
-              value={contact}
-              onChange={(e) => {
-                setContact(e.target.value);
-                setError('');
-              }}
-            />
-          </div>
+            </button>
+          </form>
+        </div>
+      )}
 
-          {error && (
-            <div
-              style={{
-                padding: '12px 16px',
-                background: 'var(--color-error-bg)',
-                color: 'var(--color-error)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.85rem',
-                marginBottom: '16px',
-                lineHeight: 1.4,
-              }}
-            >
-              {error}
-            </div>
-          )}
-
+      {/* Track Another Order Button when order is tracked */}
+      {tracking && (
+        <div className="mb-3 flex items-center justify-between">
           <button
-            type="submit"
-            className="btn btn-primary btn-lg"
-            style={{ width: '100%', justifyContent: 'center' }}
-            disabled={loading}
+            type="button"
+            onClick={() => {
+              setTracking(null);
+              setError('');
+              if (typeof window !== 'undefined' && window.history.pushState) {
+                window.history.pushState(null, '', window.location.pathname);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-3.5 py-2 rounded-xl transition-all shadow-2xs"
           >
-            {loading ? (
-              <span className="inline-flex items-center gap-2">
-                <Truck size={18} className="animate-bounce" /> Checking Postal Tracking...
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2">
-                <Truck size={18} /> Track Order Status
-              </span>
-            )}
+            ← Track Another Order
           </button>
-        </form>
-      </div>
+        </div>
+      )}
 
       {/* Tracking Result */}
       {tracking && (
-        <div className="card p-6 md:p-8 mt-6 animate-fadeIn">
+        <div className="card p-6 md:p-8 animate-fadeIn">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--color-border-light)' }}>
             <div>
               <div className="text-[11px] font-bold text-(--color-text-muted) uppercase tracking-wider">Confirmed Order</div>

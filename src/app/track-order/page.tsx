@@ -29,9 +29,6 @@ export default function TrackOrderPage(): React.JSX.Element {
       <JsonLd data={breadcrumbSchema} />
       <header className="page-header">
         <h1 className="page-title">Track Your Order</h1>
-        <p className="page-subtitle">
-          Enter your order details to check the real-time delivery status of your study materials
-        </p>
       </header>
       <main>
         <TrackOrderClient />
