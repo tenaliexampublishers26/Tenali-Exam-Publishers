@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
@@ -91,8 +91,12 @@ export default function CheckoutPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const toast = useToast();
   const [step, setStep] = useState(0);
+  const stepRef = useRef(0); // persist step across re-renders caused by auth state changes
   const [loading, setLoading] = useState(false);
   const [isOrderCompleted, setIsOrderCompleted] = useState(false);
+
+  // Keep stepRef in sync with step state
+  const goToStep = (n: number) => { stepRef.current = n; setStep(n); };
 
   const [address, setAddress] = useState<Address>({
     fullName: '',
@@ -145,12 +149,14 @@ export default function CheckoutPage() {
   }, [user]);
 
   // Auth Protection Gate: Redirect if not logged in
+  // NOTE: Do NOT redirect if payment is in progress (loading=true) or step>0
+  // because auth tokens may briefly flicker on production causing a false sign-out
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated && !loading && stepRef.current === 0) {
       toast.info('Please sign in to proceed with checkout');
       router.push('/login?redirect=/checkout');
     }
-  }, [isAuthenticated, isLoading, router, toast]);
+  }, [isAuthenticated, isLoading, loading, router, toast]);
 
   if (isLoading) {
     return (
@@ -225,16 +231,11 @@ export default function CheckoutPage() {
   };
 
   const handleAddressContinue = () => {
-    if (validateAddress()) setStep(1);
+    if (validateAddress()) goToStep(1);
   };
 
   // ─── Razorpay Payment Flow ─────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
-    // Ensure delivery address is valid (already validated in previous step)
-// if (!validateAddress()) {
-//   toast.error('Please fill in all required delivery address fields before paying');
-//   return;
-// }
 
     setLoading(true);
 
@@ -512,7 +513,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   className={`${styles.stepBtn} ${isCompleted ? styles.stepBtnActive : ''}`}
-                  onClick={() => isCompleted && setStep(i)}
+                  onClick={() => isCompleted && goToStep(i)}
                   aria-label={`Step ${i + 1}: ${s}`}
                 >
                   <div
@@ -599,7 +600,7 @@ export default function CheckoutPage() {
                 <h2 className={styles.cardTitleInHeader}>
                   Delivery Address
                 </h2>
-                <button type="button" onClick={() => setStep(0)} className="btn btn-ghost btn-sm" style={{ minHeight: '36px', borderRadius: '10px' }}>
+                <button type="button" onClick={() => goToStep(0)} className="btn btn-ghost btn-sm" style={{ minHeight: '36px', borderRadius: '10px' }}>
                   Edit Address
                 </button>
               </div>
@@ -689,7 +690,7 @@ export default function CheckoutPage() {
               </div>
 
               <div className={styles.reviewActions}>
-                <button type="button" onClick={() => setStep(0)} className={`btn btn-secondary btn-lg ${styles.backBtn}`}>
+                <button type="button" onClick={() => goToStep(0)} className={`btn btn-secondary btn-lg ${styles.backBtn}`}>
                   <ArrowLeft size={18} style={{ marginRight: '8px' }} />
                   Back
                 </button>
