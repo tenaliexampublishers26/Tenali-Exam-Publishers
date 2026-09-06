@@ -263,7 +263,10 @@
 
 @media (max-width: 480px) {
   .activeIndicator {
-    display: none;
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 }
 

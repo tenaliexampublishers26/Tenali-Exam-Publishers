@@ -84,17 +84,23 @@ export default function CartPage() {
 
   return (
     <div className={styles.cartContainer}>
-      <div className="page-header" style={{ position: 'relative' }}>
-        <button 
-          onClick={handleBack} 
-          style={{ position: 'absolute', left: '20px', top: '24px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          aria-label="Go back"
-        >
-          <ArrowLeft size={16} /> Back
-        </button>
-        <h1 className="page-title">Shopping Cart</h1>
-        <p className="page-subtitle">{totalItems} {totalItems === 1 ? 'item' : 'items'} in your cart</p>
-      </div>
+      {/* Responsive Cart Header */}
+      <header className={styles.cartHeaderBar}>
+        <div className={`container ${styles.cartHeaderInner}`}>
+          <button 
+            onClick={handleBack} 
+            className={styles.backBtnNav}
+            aria-label="Go back"
+          >
+            <ArrowLeft size={16} style={{ color: '#2563eb', flexShrink: 0 }} />
+            <span>Back</span>
+          </button>
+          <h1 className={styles.cartTitle}>Shopping Cart</h1>
+          <span className={styles.itemCountBadge}>
+            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+          </span>
+        </div>
+      </header>
 
       <div className="container">
         <div className={styles.cartLayout}>
@@ -228,6 +234,22 @@ export default function CartPage() {
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Sticky Checkout Bar */}
+      <div className={styles.mobileStickyCartBar}>
+        <div className={styles.stickyTotalGroup}>
+          <span className={styles.stickyTotalLabel}>Total ({totalItems} item{totalItems > 1 ? 's' : ''})</span>
+          <span className={styles.stickyTotalVal}>{formatPrice(total)}</span>
+        </div>
+
+        <button
+          onClick={handleProceedToCheckout}
+          className={`btn btn-primary ${styles.stickyCheckoutBtn}`}
+        >
+          <span>{isAuthenticated ? 'Checkout →' : 'Sign In & Checkout'}</span>
+          {!isAuthenticated && <Lock size={14} />}
+        </button>
       </div>
     </div>
   );

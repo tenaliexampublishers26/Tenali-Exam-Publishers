@@ -435,7 +435,16 @@ export default function CheckoutPage() {
     }
   };
 
-  const renderField = (id: string, label: string, field: keyof Address, type = 'text', placeholder = '') => {
+  const renderField = (
+    id: string, 
+    label: string, 
+    field: keyof Address, 
+    type = 'text', 
+    placeholder = '', 
+    inputMode?: 'text' | 'tel' | 'numeric' | 'email',
+    autoComplete?: string,
+    maxLength?: number
+  ) => {
     const icon = getFieldIcon(field);
     return (
       <div className={styles.formGroup}>
@@ -456,6 +465,9 @@ export default function CheckoutPage() {
             <input 
               id={id} 
               type={type} 
+              inputMode={inputMode}
+              autoComplete={autoComplete}
+              maxLength={maxLength}
               className={`${styles.formInput} ${addressErrors[field] ? styles.error : ''}`} 
               placeholder={placeholder} 
               value={address[field]} 
@@ -484,17 +496,27 @@ export default function CheckoutPage() {
 
   return (
     <div className={styles.checkoutContainer}>
-      <div className="page-header" style={{ padding: '24px 0 0 0', marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-        <button
-          type="button"
-          onClick={handleBackToProduct}
-          style={{ position: 'absolute', left: '20px', top: '24px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', fontSize: '0.9rem', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
-        >
-          <ArrowLeft size={16} style={{ color: '#2563eb' }} />
-          <span>Back to Product</span>
-        </button>
-        <h1 className="page-title" style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--font-heading)', marginBottom: '0px' }}>Checkout</h1>
-      </div>
+      {/* Responsive Header Bar */}
+      <header className={styles.checkoutHeaderBar}>
+        <div className={`container ${styles.checkoutHeaderInner}`}>
+          <button
+            type="button"
+            onClick={handleBackToProduct}
+            className={styles.backBtnNav}
+            aria-label="Back to Product"
+          >
+            <ArrowLeft size={16} style={{ color: '#2563eb', flexShrink: 0 }} />
+            <span>Back to Product</span>
+          </button>
+          
+          <h1 className={styles.checkoutTitle}>Checkout</h1>
+
+          <div className={styles.checkoutBadgeSecure}>
+            <Lock size={13} />
+            <span>Secure 256-bit</span>
+          </div>
+        </div>
+      </header>
 
       <div className={`container ${styles.checkoutInner}`}>
         {/* Progress Steps */}
@@ -566,17 +588,17 @@ export default function CheckoutPage() {
             </div>
 
             <div className={styles.formGrid}>
-              {renderField('fullName', 'Full Name', 'fullName', 'text', 'Your full name')}
-              {renderField('mobile', 'Mobile Number', 'mobile', 'tel', '10-digit mobile number')}
-              {renderField('email', 'Email Address', 'email', 'email', 'your@email.com')}
-              {renderField('houseOrFlat', 'House / Flat Number', 'houseOrFlat', 'text', 'House/Flat number')}
-              {renderField('street', 'Street', 'street', 'text', 'Street name')}
-              {renderField('area', 'Area / Locality', 'area', 'text', 'Area / Locality')}
-              {renderField('city', 'City', 'city', 'text', 'City')}
+              {renderField('fullName', 'Full Name', 'fullName', 'text', 'Your full name', 'text', 'name')}
+              {renderField('mobile', 'Mobile Number', 'mobile', 'tel', '10-digit mobile number', 'tel', 'tel', 10)}
+              {renderField('email', 'Email Address', 'email', 'email', 'your@email.com', 'email', 'email')}
+              {renderField('houseOrFlat', 'House / Flat Number', 'houseOrFlat', 'text', 'House/Flat number', 'text', 'address-line1')}
+              {renderField('street', 'Street', 'street', 'text', 'Street name', 'text', 'address-line2')}
+              {renderField('area', 'Area / Locality', 'area', 'text', 'Area / Locality', 'text')}
+              {renderField('city', 'City', 'city', 'text', 'City', 'text', 'address-level2')}
               {renderField('state', 'State', 'state')}
-              {renderField('pinCode', 'PIN Code', 'pinCode', 'text', '6-digit PIN code')}
+              {renderField('pinCode', 'PIN Code', 'pinCode', 'text', '6-digit PIN code', 'numeric', 'postal-code', 6)}
             </div>
-            <div style={{ marginTop: '20px', padding: '14px 18px', background: 'var(--color-bg-page)', borderRadius: '14px', border: '1px solid var(--color-border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div className={styles.orderTotalBar}>
               <div>
                 <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Order Total ({items.length} item{items.length > 1 ? 's' : ''}): </span>
                 <strong style={{ fontSize: '1.05rem', color: 'var(--color-text-primary)' }}>{formatPrice(total)}</strong>

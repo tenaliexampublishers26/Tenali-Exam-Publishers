@@ -147,6 +147,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      toast.info('Please select a medium to continue.');
       return;
     }
     if (isOutOfStock) {
@@ -173,6 +174,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      toast.info('Please select a medium to continue.');
       return;
     }
     if (isOutOfStock) {
@@ -269,6 +271,22 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
                 </>
               )}
             </div>
+
+            {/* Gallery Indicator Dots */}
+            {imageList.length > 1 && (
+              <div className={styles.galleryDots} role="tablist" aria-label="Image gallery dots">
+                {imageList.map((_, dotIdx) => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    onClick={() => scrollToSlide(dotIdx)}
+                    className={`${styles.galleryDot} ${currentSlide === dotIdx ? styles.galleryDotActive : ''}`}
+                    aria-label={`Go to slide ${dotIdx + 1}`}
+                    aria-selected={currentSlide === dotIdx}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -527,7 +545,17 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
 
       {/* Mobile Sticky Buy Bar */}
       <div className={styles.mobileStickyBar}>
-        <div className={styles.stickyPriceGroup}>
+        <div 
+          className={styles.stickyPriceGroup}
+          onClick={() => {
+            if (!selectedLang && productLangs.length > 0) {
+              mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          role={!selectedLang && productLangs.length > 0 ? "button" : undefined}
+          tabIndex={!selectedLang && productLangs.length > 0 ? 0 : undefined}
+          aria-label={!selectedLang && productLangs.length > 0 ? "Select Medium" : undefined}
+        >
           <div className={styles.stickyPrice}>{formatPrice(product.price)}</div>
           <div className={styles.stickyMediumTag}>
             {selectedLang

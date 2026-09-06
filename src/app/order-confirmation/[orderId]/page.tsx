@@ -31,15 +31,31 @@ export default function OrderConfirmationPage(): React.JSX.Element {
   return (
     <div style={{
       textAlign: 'center',
-      padding: '40px 20px 80px 20px',
+      padding: '24px 16px 80px 16px',
       maxWidth: '600px',
       margin: '0 auto',
       animation: 'fadeIn 0.4s ease',
-      position: 'relative'
     }}>
-      <Link href="/" style={{ position: 'absolute', left: '20px', top: '16px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none' }}>
-        <ArrowLeft size={16} /> Home
-      </Link>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginBottom: '16px' }}>
+        <Link 
+          href="/" 
+          style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '6px', 
+            color: 'var(--color-text-primary)', 
+            fontSize: '0.85rem', 
+            fontWeight: 700, 
+            textDecoration: 'none',
+            padding: '8px 14px',
+            background: 'var(--color-bg-card)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '10px'
+          }}
+        >
+          <ArrowLeft size={16} style={{ color: '#2563eb' }} /> Home
+        </Link>
+      </div>
       <style>{`
         @keyframes successScalePop {
           0% { transform: scale(0.5); opacity: 0; }
@@ -64,27 +80,27 @@ export default function OrderConfirmationPage(): React.JSX.Element {
       <div 
         className="animate-success-pop"
         style={{
-          width: '90px', 
-          height: '90px',
+          width: '84px', 
+          height: '84px', 
           borderRadius: '50%',
           background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)',
           border: '1.5px solid rgba(16, 185, 129, 0.25)',
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          margin: '0 auto 28px',
+          margin: '0 auto 24px',
           color: '#10B981',
           boxShadow: '0 8px 24px rgba(16, 185, 129, 0.08)',
         }}
       >
         <div className="animate-checkmark-draw" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CheckCircle2 size={46} strokeWidth={1.75} />
+          <CheckCircle2 size={42} strokeWidth={1.75} />
         </div>
       </div>
 
       <h1 style={{
         fontFamily: 'var(--font-heading)',
-        fontSize: '2.1rem',
+        fontSize: 'clamp(1.5rem, 5vw, 2.1rem)',
         fontWeight: 800,
         marginBottom: '12px',
         color: 'var(--color-text-primary)',
@@ -95,8 +111,8 @@ export default function OrderConfirmationPage(): React.JSX.Element {
 
       <p style={{
         color: 'var(--color-text-secondary)',
-        fontSize: '1rem',
-        marginBottom: '28px',
+        fontSize: '0.95rem',
+        marginBottom: '24px',
         lineHeight: 1.5
       }}>
         Thank you for your order. We have verified your payment and our desk is preparing your books.
@@ -106,17 +122,20 @@ export default function OrderConfirmationPage(): React.JSX.Element {
       <div style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '12px',
-        padding: '10px 18px',
+        justifyContent: 'center',
+        gap: '8px',
+        flexWrap: 'wrap',
+        maxWidth: '100%',
+        padding: '10px 16px',
         background: 'var(--color-bg-page)',
         border: '1px solid var(--color-border-light)',
         borderRadius: '14px',
-        marginBottom: '36px',
-        fontSize: '0.925rem',
+        marginBottom: '28px',
+        fontSize: '0.9rem',
         boxShadow: '0 2px 6px rgba(0,0,0,0.01)'
       }}>
-        <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}>Order ID:</span>
-        <strong style={{ color: 'var(--color-text-primary)', letterSpacing: '0.5px' }}>{orderId}</strong>
+        <span style={{ color: 'var(--color-text-muted)', fontWeight: 500, fontSize: '0.8rem' }}>Order ID:</span>
+        <strong style={{ color: 'var(--color-text-primary)', letterSpacing: '0.5px', wordBreak: 'break-all' }}>{orderId}</strong>
         <button 
           onClick={handleCopy}
           aria-label={copied ? "Copied" : "Copy Order ID"}
@@ -124,7 +143,6 @@ export default function OrderConfirmationPage(): React.JSX.Element {
             background: 'none',
             border: 'none',
             padding: '4px',
-            marginLeft: '4px',
             color: copied ? '#10B981' : 'var(--color-text-muted)',
             cursor: 'pointer',
             display: 'flex',

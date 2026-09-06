@@ -280,6 +280,31 @@
   }
 }
 
+.galleryDots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.galleryDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+}
+
+.galleryDotActive {
+  width: 22px;
+  border-radius: 10px;
+  background: var(--color-primary);
+}
+
 /* ============================
    PRODUCT INFO SECTION
    ============================ */
@@ -879,18 +904,41 @@
 
 @media (max-width: 380px) {
   .mobileStickyBar {
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-    gap: 8px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    gap: 6px;
   }
 
   .stickyPrice {
-    font-size: 1.05rem;
+    font-size: 1rem;
+  }
+
+  .stickyMediumTag {
+    font-size: 0.65rem;
+    max-width: 80px;
+  }
+
+  .stickyActions {
+    gap: 6px;
   }
 
   .stickyCartBtn,
   .stickyBuyBtn {
-    font-size: 0.78rem;
-    padding: 7px 8px;
-    min-height: 42px;
+    font-size: 0.76rem;
+    padding: 6px 6px;
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 330px) {
+  .mobileStickyBar {
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  .stickyPrice {
+    font-size: 0.92rem;
+  }
+  .stickyCartBtn,
+  .stickyBuyBtn {
+    font-size: 0.72rem;
+    padding: 5px 4px;
   }
 }

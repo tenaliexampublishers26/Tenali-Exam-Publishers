@@ -221,8 +221,7 @@
 
 @media (max-width: 768px) {
   .wrapper {
-    /* Push up above mobile sticky buy bar (≈ 70px height) */
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     right: 14px;
   }
   
@@ -244,7 +243,7 @@
 
 @media (max-width: 480px) {
   .wrapper {
-    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     right: 12px;
   }
 
@@ -256,9 +255,4 @@
     width: 46px;
     height: 46px;
   }
-}
-
-/* On non-product pages, override back to normal bottom */
-.wrapperNormal {
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }

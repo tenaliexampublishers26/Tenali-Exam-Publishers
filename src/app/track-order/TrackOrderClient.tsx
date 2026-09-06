@@ -429,8 +429,8 @@ export default function TrackOrderClient(): React.JSX.Element {
                   <span className="text-[11px] text-(--color-text-muted) block">Consignment Tracking Number</span>
                   <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '1.15rem', color: 'var(--color-text-primary)' }}>{tracking.trackingNumber}</span>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button type="button" onClick={handleCopyTracking} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: '340px' }}>
+                  <button type="button" onClick={handleCopyTracking} className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: '1 1 100px', minHeight: '38px' }}>
                     {copied ? <Check size={14} /> : <Copy size={14} />}
                     {copied ? 'Copied' : 'Copy ID'}
                   </button>
@@ -439,7 +439,7 @@ export default function TrackOrderClient(): React.JSX.Element {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-primary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: '1.4 1 160px', minHeight: '38px' }}
                   >
                     Track on India Post <ExternalLink size={13} />
                   </a>
