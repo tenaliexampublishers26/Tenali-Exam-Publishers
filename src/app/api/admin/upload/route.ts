@@ -29,63 +29,79 @@ export async function POST(request: Request) {
     const supabase = getSupabaseClient();
 
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+    // Support both multiple files ('files') and single/multiple ('file')
+    const rawFiles = formData.getAll('files') as File[];
+    const singleFiles = formData.getAll('file') as File[];
+    const filesToProcess = (rawFiles.length > 0 ? rawFiles : singleFiles).filter(
+      (f) => f && typeof f === 'object' && 'size' in f && f.size > 0
+    );
 
-    if (!file) {
+    if (filesToProcess.length === 0) {
       return NextResponse.json({ error: 'No image file provided' }, { status: 400 });
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file format. Please upload a PNG, JPG, JPEG, WEBP, or GIF image.' },
-        { status: 400 }
-      );
+    // Validate all files first
+    for (const file of filesToProcess) {
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        return NextResponse.json(
+          { error: `Invalid format for "${file.name}". Please upload a PNG, JPG, JPEG, WEBP, or GIF image.` },
+          { status: 400 }
+        );
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `File "${file.name}" exceeds 5MB limit. Please upload smaller images.` },
+          { status: 400 }
+        );
+      }
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'Image size exceeds 5MB limit. Please upload a smaller image.' },
-        { status: 400 }
-      );
-    }
+    // Upload files concurrently to Supabase Storage
+    const uploadPromises = filesToProcess.map(async (file, idx) => {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-    // Convert file to Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileExt = sanitizedName.split('.').pop() || 'png';
+      const baseName = sanitizedName.substring(0, sanitizedName.lastIndexOf('.')) || 'product';
+      const fileName = `${baseName}-${Date.now()}-${idx}.${fileExt}`;
 
-    // Create unique sanitized filename
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileExt = sanitizedName.split('.').pop() || 'png';
-    const baseName = sanitizedName.substring(0, sanitizedName.lastIndexOf('.')) || 'product';
-    const fileName = `${baseName}-${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from('products')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          upsert: true,
+        });
 
-    // Upload to Supabase Storage in "products" bucket
-    const { data, error } = await supabase.storage
-      .from('products')
-      .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: true,
-      });
+      if (error) {
+        throw new Error(error.message || `Failed to upload ${file.name} to Supabase Storage`);
+      }
 
-    if (error) {
-      console.error('Supabase storage upload error:', error);
-      return NextResponse.json(
-        { error: error.message || 'Failed to upload image to Supabase Storage' },
-        { status: 500 }
-      );
-    }
+      const { data: urlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(data.path);
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('products')
-      .getPublicUrl(data.path);
+      return {
+        url: urlData.publicUrl,
+        fileName: data.path,
+        originalName: file.name,
+      };
+    });
 
-    return NextResponse.json({
-      success: true,
-      url: urlData.publicUrl,
-      fileName: data.path,
-    }, { status: 200 });
+    const results = await Promise.all(uploadPromises);
+    const urls = results.map((r) => r.url);
 
+    return NextResponse.json(
+      {
+        success: true,
+        url: urls[0] || '',
+        urls: urls,
+        files: results,
+        uploadedCount: urls.length,
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error('Upload API error:', error);
     return NextResponse.json(

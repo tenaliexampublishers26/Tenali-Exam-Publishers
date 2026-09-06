@@ -22,6 +22,7 @@ export default function AddProductPage() {
     price: '',
     description: '',
     image: '',
+    images: [] as string[],
     bundleTitle: '',
     booksIncluded: '1',
     badge: ''
@@ -62,8 +63,21 @@ export default function AddProductPage() {
     setLoading(true);
 
     try {
+      const finalImages = formData.images.length > 0
+        ? formData.images
+        : (formData.image ? [formData.image] : []);
+      const primaryImage = finalImages[0] || formData.image || '';
+
+      if (!primaryImage) {
+        toast.error('Please upload at least one product image');
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         ...formData,
+        image: primaryImage,
+        images: finalImages,
         price: parseFloat(formData.price),
         booksIncluded: parseInt(formData.booksIncluded),
         languages: mediums.map(m => ({
@@ -155,8 +169,15 @@ export default function AddProductPage() {
             </div>
 
             <ImageUpload
+              images={formData.images}
               value={formData.image}
-              onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+              onChange={(newImages, primaryImage) => {
+                setFormData(prev => ({
+                  ...prev,
+                  images: newImages,
+                  image: primaryImage || newImages[0] || ''
+                }));
+              }}
               required
             />
 

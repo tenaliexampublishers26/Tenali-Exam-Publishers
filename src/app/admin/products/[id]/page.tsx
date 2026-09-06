@@ -26,6 +26,7 @@ export default function EditProductPage({ params }: PageProps) {
     price: '',
     description: '',
     image: '',
+    images: [] as string[],
     bundleTitle: '',
     booksIncluded: '',
     badge: ''
@@ -67,12 +68,28 @@ export default function EditProductPage({ params }: PageProps) {
           ]);
         }
 
+        let initialImages: string[] = [];
+        if (Array.isArray(p.images)) {
+          initialImages = p.images.map((img: any) => String(img)).filter(Boolean);
+        } else if (typeof p.images === 'string') {
+          try {
+            const parsed = JSON.parse(p.images);
+            if (Array.isArray(parsed)) {
+              initialImages = parsed.map((img: any) => String(img)).filter(Boolean);
+            }
+          } catch (e) {}
+        }
+        if (initialImages.length === 0 && p.image) {
+          initialImages = [p.image];
+        }
+
         setFormData({
           name: p.name || '',
           category: p.category || 'books',
           price: p.price?.toString() || '0',
           description: p.description || '',
-          image: p.image || '',
+          image: p.image || initialImages[0] || '',
+          images: initialImages,
           bundleTitle: p.bundleTitle || '',
           booksIncluded: p.booksIncluded?.toString() || '1',
           badge: p.badge || ''
@@ -97,8 +114,21 @@ export default function EditProductPage({ params }: PageProps) {
     setSaving(true);
 
     try {
+      const finalImages = formData.images.length > 0
+        ? formData.images
+        : (formData.image ? [formData.image] : []);
+      const primaryImage = finalImages[0] || formData.image || '';
+
+      if (!primaryImage) {
+        toast.error('Please upload at least one product image');
+        setSaving(false);
+        return;
+      }
+
       const payload = {
         ...formData,
+        image: primaryImage,
+        images: finalImages,
         price: parseFloat(formData.price),
         booksIncluded: parseInt(formData.booksIncluded),
         languages: mediums.map(m => ({
@@ -189,8 +219,15 @@ export default function EditProductPage({ params }: PageProps) {
             </div>
 
             <ImageUpload
+              images={formData.images}
               value={formData.image}
-              onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+              onChange={(newImages, primaryImage) => {
+                setFormData(prev => ({
+                  ...prev,
+                  images: newImages,
+                  image: primaryImage || newImages[0] || ''
+                }));
+              }}
               required
             />
 

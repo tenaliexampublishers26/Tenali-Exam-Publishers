@@ -6,7 +6,20 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     const params = await context.params;
     const productId = params.id;
     const body = await request.json();
-    const { name, price, stockEn, stockTe, stockHi, languages, description, image, category, bundleTitle, booksIncluded, badge } = body;
+    const { name, price, stockEn, stockTe, stockHi, languages, description, image, images, category, bundleTitle, booksIncluded, badge } = body;
+
+    let imagesArr: string[] | null = null;
+    let primaryImage: string | null = null;
+
+    if (Array.isArray(images)) {
+      imagesArr = images
+        .map((img: any) => String(img).trim())
+        .filter((img: string) => img.length > 0);
+      primaryImage = imagesArr[0] || (image ? String(image).trim() : null);
+    } else if (image !== undefined) {
+      primaryImage = String(image).trim();
+      imagesArr = primaryImage ? [primaryImage] : [];
+    }
 
     let languagesArr: Array<{ code: string; name: string; stock: number }> | null = null;
     let totalStock: number | null = null;
@@ -49,7 +62,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         price = COALESCE(${price}, price),
         stock = COALESCE(${totalStock}, stock),
         description = COALESCE(${description}, description),
-        image = COALESCE(${image}, image),
+        image = COALESCE(${primaryImage}, image),
+        images = COALESCE(${imagesArr !== null ? sql.json(imagesArr) : null}, images),
         category = COALESCE(${category}, category),
         bundle_title = COALESCE(${bundleTitle}, bundle_title),
         books_included = COALESCE(${booksIncluded}, books_included),
