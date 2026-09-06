@@ -6,21 +6,40 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     const params = await context.params;
     const productId = params.id;
     const body = await request.json();
-    const { name, price, stockEn, stockTe, stockHi, description, image, category, bundleTitle, booksIncluded, badge } = body;
+    const { name, price, stockEn, stockTe, stockHi, languages, description, image, category, bundleTitle, booksIncluded, badge } = body;
 
-    const en = parseInt(stockEn) !== undefined && !isNaN(parseInt(stockEn)) ? parseInt(stockEn) : null;
-    const te = parseInt(stockTe) !== undefined && !isNaN(parseInt(stockTe)) ? parseInt(stockTe) : null;
-    const hi = parseInt(stockHi) !== undefined && !isNaN(parseInt(stockHi)) ? parseInt(stockHi) : null;
+    let languagesArr: Array<{ code: string; name: string; stock: number }> | null = null;
+    let totalStock: number | null = null;
 
-    let languagesArr = null;
-    let totalStock = null;
-    if (en !== null && te !== null && hi !== null) {
-      totalStock = en + te + hi;
-      languagesArr = [
-        { code: 'en', name: 'English', stock: en },
-        { code: 'te', name: 'Telugu', stock: te },
-        { code: 'hi', name: 'Hindi', stock: hi }
-      ];
+    if (Array.isArray(languages)) {
+      languagesArr = languages
+        .map((l: any) => {
+          const rawName = String(l.name || '').trim();
+          const rawCode = String(l.code || rawName.toLowerCase().replace(/[^a-z0-9-]/g, '') || 'en')
+            .trim()
+            .toLowerCase();
+          const stock = Math.max(0, parseInt(String(l.stock), 10) || 0);
+          return {
+            code: rawCode || 'en',
+            name: rawName || rawCode.toUpperCase(),
+            stock,
+          };
+        })
+        .filter((l) => l.name.length > 0);
+      totalStock = languagesArr.reduce((sum, l) => sum + (l.stock || 0), 0);
+    } else {
+      const en = parseInt(stockEn) !== undefined && !isNaN(parseInt(stockEn)) ? parseInt(stockEn) : null;
+      const te = parseInt(stockTe) !== undefined && !isNaN(parseInt(stockTe)) ? parseInt(stockTe) : null;
+      const hi = parseInt(stockHi) !== undefined && !isNaN(parseInt(stockHi)) ? parseInt(stockHi) : null;
+
+      if (en !== null && te !== null && hi !== null) {
+        totalStock = en + te + hi;
+        languagesArr = [
+          { code: 'en', name: 'English', stock: en },
+          { code: 'te', name: 'Telugu', stock: te },
+          { code: 'hi', name: 'Hindi', stock: hi },
+        ];
+      }
     }
 
     const result = await sql`

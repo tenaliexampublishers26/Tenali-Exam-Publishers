@@ -79,9 +79,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     keywords: [
       product.name,
       `${product.name} book`,
-      `${product.name} Telugu medium`,
-      `${product.name} English medium`,
-      `${product.name} Hindi medium`,
+      ...(Array.isArray(product.languages)
+        ? product.languages.map((l: any) => `${product.name} ${typeof l === 'string' ? l : l.name || l.code} medium`)
+        : [`${product.name} Telugu medium`, `${product.name} English medium`, `${product.name} Hindi medium`]),
       product.bundleTitle || '',
       product.category || '',
       'India Post LDCE exam study guide',

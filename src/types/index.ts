@@ -1,7 +1,7 @@
-export type LanguageCode = 'en' | 'te' | 'hi';
+export type LanguageCode = 'en' | 'te' | 'hi' | string;
 
 export interface ProductLanguage {
-  code: LanguageCode;
+  code: string;
   name: string;
   stock?: number;
 }

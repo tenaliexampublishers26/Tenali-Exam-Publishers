@@ -7,6 +7,7 @@ import { Package, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import ImageUpload from '@/components/admin/ImageUpload';
 import { SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
+import ProductMediumsEditor, { MediumItem } from '@/components/admin/ProductMediumsEditor';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -23,15 +24,14 @@ export default function EditProductPage({ params }: PageProps) {
     name: '',
     category: '',
     price: '',
-    stockEn: '',
-    stockTe: '',
-    stockHi: '',
     description: '',
     image: '',
     bundleTitle: '',
     booksIncluded: '',
     badge: ''
   });
+
+  const [mediums, setMediums] = useState<MediumItem[]>([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -40,16 +40,37 @@ export default function EditProductPage({ params }: PageProps) {
         if (!res.ok) throw new Error('Failed to load product');
         const data = await res.json();
         const p = data.product;
-        const langs = p.languages || [];
-        const getStock = (code: string) => langs.find((l: any) => l.code === code)?.stock?.toString() || '0';
+        
+        let rawLangs: any = p.languages;
+        if (typeof rawLangs === 'string') {
+          try {
+            rawLangs = JSON.parse(rawLangs);
+            if (typeof rawLangs === 'string') rawLangs = JSON.parse(rawLangs);
+          } catch (e) {
+            rawLangs = [];
+          }
+        }
+
+        if (Array.isArray(rawLangs) && rawLangs.length > 0) {
+          setMediums(
+            rawLangs.map((l: any) => ({
+              code: String(l.code || 'en').toLowerCase(),
+              name: String(l.name || l.code || 'English'),
+              stock: Math.max(0, parseInt(String(l.stock), 10) || 0),
+            }))
+          );
+        } else {
+          setMediums([
+            { code: 'en', name: 'English', stock: Math.max(0, parseInt(String(p.stock), 10) || 0) },
+            { code: 'te', name: 'Telugu', stock: 0 },
+            { code: 'hi', name: 'Hindi', stock: 0 },
+          ]);
+        }
 
         setFormData({
           name: p.name || '',
           category: p.category || 'books',
           price: p.price?.toString() || '0',
-          stockEn: getStock('en'),
-          stockTe: getStock('te'),
-          stockHi: getStock('hi'),
           description: p.description || '',
           image: p.image || '',
           bundleTitle: p.bundleTitle || '',
@@ -79,10 +100,12 @@ export default function EditProductPage({ params }: PageProps) {
       const payload = {
         ...formData,
         price: parseFloat(formData.price),
-        stockEn: parseInt(formData.stockEn),
-        stockTe: parseInt(formData.stockTe),
-        stockHi: parseInt(formData.stockHi),
-        booksIncluded: parseInt(formData.booksIncluded)
+        booksIncluded: parseInt(formData.booksIncluded),
+        languages: mediums.map(m => ({
+          code: m.code.trim().toLowerCase(),
+          name: m.name.trim(),
+          stock: Math.max(0, parseInt(String(m.stock), 10) || 0)
+        }))
       };
 
       const res = await fetch(`/api/admin/products/${id}`, {
@@ -179,34 +202,21 @@ export default function EditProductPage({ params }: PageProps) {
         </div>
 
         {/* Section 2: Pricing & Inventory */}
-        <div className="admin-form-section">
-          <h3 className="admin-form-section__title">Pricing & Stock Levels</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <div className="admin-form-section space-y-6">
+          <h3 className="admin-form-section__title">Pricing & Inventory</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="form-group">
               <label className="form-label">Price (₹)</label>
               <input required type="number" step="0.01" name="price" value={formData.price} onChange={handleChange} className="form-input" />
             </div>
 
             <div className="form-group">
-              <label className="form-label">English Stock</label>
-              <input required type="number" name="stockEn" value={formData.stockEn} onChange={handleChange} className="form-input" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Telugu Stock</label>
-              <input required type="number" name="stockTe" value={formData.stockTe} onChange={handleChange} className="form-input" />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Hindi Stock</label>
-              <input required type="number" name="stockHi" value={formData.stockHi} onChange={handleChange} className="form-input" />
-            </div>
-
-            <div className="form-group sm:col-span-4">
               <label className="form-label">Books Included Count</label>
               <input required type="number" name="booksIncluded" value={formData.booksIncluded} onChange={handleChange} className="form-input" />
             </div>
           </div>
+
+          <ProductMediumsEditor mediums={mediums} onChange={setMediums} />
         </div>
 
         {/* Section 3: Marketing Labels */}

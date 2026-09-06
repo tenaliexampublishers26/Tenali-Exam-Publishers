@@ -403,7 +403,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
                           textDecoration: langOutOfStock ? 'line-through' : 'none',
                         }}
                       >
-                        <span>{getLanguageDisplay(lang.code)}{langOutOfStock ? ' (Out of Stock)' : ''}</span>
+                        <span>{(lang.name || getLanguageDisplay(lang.code))}{langOutOfStock ? ' (Out of Stock)' : ''}</span>
                       </button>
                     );
                   }
@@ -520,7 +520,12 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
         <div className={styles.stickyPriceGroup}>
           <div className={styles.stickyPrice}>{formatPrice(product.price)}</div>
           <div className={styles.stickyMediumTag}>
-            {selectedLang ? `Medium: ${getLanguageDisplay(selectedLang)}` : 'Select Medium'}
+            {selectedLang
+              ? `Medium: ${(() => {
+                  const m = productLangs.find((l: any) => l.code === selectedLang);
+                  return m?.name || getLanguageDisplay(selectedLang);
+                })()}`
+              : 'Select Medium'}
           </div>
         </div>
 

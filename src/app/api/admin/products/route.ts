@@ -29,7 +29,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { id, slug, name, price, stockEn, stockTe, stockHi, category, description, image, bundleTitle, booksIncluded, badge } = body;
+    const { id, slug, name, price, stockEn, stockTe, stockHi, languages, category, description, image, bundleTitle, booksIncluded, badge } = body;
 
     const cleanSlug = (slug || '')
       .trim()
@@ -42,16 +42,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing or invalid required fields' }, { status: 400 });
     }
 
-    const en = parseInt(stockEn) || 0;
-    const te = parseInt(stockTe) || 0;
-    const hi = parseInt(stockHi) || 0;
-    const totalStock = en + te + hi;
+    let languagesArr: Array<{ code: string; name: string; stock: number }> = [];
 
-    const languagesArr = [
-      { code: 'en', name: 'English', stock: en },
-      { code: 'te', name: 'Telugu', stock: te },
-      { code: 'hi', name: 'Hindi', stock: hi }
-    ];
+    if (Array.isArray(languages) && languages.length > 0) {
+      languagesArr = languages
+        .map((l: any) => {
+          const rawName = String(l.name || '').trim();
+          const rawCode = String(l.code || rawName.toLowerCase().replace(/[^a-z0-9-]/g, '') || 'en')
+            .trim()
+            .toLowerCase();
+          const stock = Math.max(0, parseInt(String(l.stock), 10) || 0);
+          return {
+            code: rawCode || 'en',
+            name: rawName || rawCode.toUpperCase(),
+            stock,
+          };
+        })
+        .filter((l) => l.name.length > 0);
+    }
+
+    // If languages was not provided or empty, fallback to legacy fields
+    if (languagesArr.length === 0) {
+      const en = parseInt(stockEn) || 0;
+      const te = parseInt(stockTe) || 0;
+      const hi = parseInt(stockHi) || 0;
+      languagesArr = [
+        { code: 'en', name: 'English', stock: en },
+        { code: 'te', name: 'Telugu', stock: te },
+        { code: 'hi', name: 'Hindi', stock: hi },
+      ];
+    }
+
+    const totalStock = languagesArr.reduce((sum, l) => sum + (l.stock || 0), 0);
 
     const result = await sql`
       INSERT INTO products (

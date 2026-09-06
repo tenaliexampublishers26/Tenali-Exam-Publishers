@@ -31,21 +31,47 @@ export function formatDateTime(dateString: string | Date): string {
 }
 
 export function getLanguageDisplay(code: string): string {
+  if (!code) return '';
   const map: Record<string, string> = {
     en: 'English',
     te: 'Telugu',
     hi: 'Hindi',
+    kn: 'Kannada',
+    ta: 'Tamil',
+    ml: 'Malayalam',
+    mr: 'Marathi',
+    bn: 'Bengali',
+    or: 'Odia',
+    od: 'Odia',
+    gu: 'Gujarati',
+    pa: 'Punjabi',
+    ur: 'Urdu',
+    as: 'Assamese',
+    sa: 'Sanskrit',
   };
-  return map[code] || code;
+  const key = code.toLowerCase().trim();
+  if (map[key]) return map[key];
+  return code.charAt(0).toUpperCase() + code.slice(1);
 }
 
 export function getLanguageBadgeClass(code: string): string {
+  if (!code) return 'badge-neutral';
   const map: Record<string, string> = {
     en: 'badge-blue',
     te: 'badge-gold',
     hi: 'badge-neutral',
+    kn: 'badge-emerald',
+    ta: 'badge-purple',
+    ml: 'badge-indigo',
+    mr: 'badge-amber',
+    bn: 'badge-teal',
+    or: 'badge-cyan',
+    od: 'badge-cyan',
+    gu: 'badge-orange',
+    pa: 'badge-rose',
+    ur: 'badge-slate',
   };
-  return map[code] || 'badge-neutral';
+  return map[code.toLowerCase().trim()] || 'badge-neutral';
 }
 
 export function isValidEmail(email: string): boolean {
