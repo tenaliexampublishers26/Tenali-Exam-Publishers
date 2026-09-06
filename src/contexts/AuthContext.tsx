@@ -1,13 +1,31 @@
 'use client';
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import {
+  createContext, useContext, useState, useEffect, useCallback,
+  ReactNode, useRef, useMemo
+} from 'react';
 import { User } from '@/types';
 import { createClient } from '@/utils/supabase/client';
 import type { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
-interface AuthContextType {
+// ─── Split Context Pattern ────────────────────────────────────────────────────
+// PROBLEM: A single AuthContext with both user data AND action functions means
+// any component that reads `user` re-renders when a login/logout function
+// reference changes, and vice versa.
+//
+// SOLUTION: Two contexts:
+//  - AuthStateContext  → stable user data (object)
+//  - AuthActionsContext → stable callbacks (memo'd functions, rarely change)
+//
+// Components that only need user info: useAuthState() — no action re-renders
+// Components that need both: useAuth() — convenience hook (existing API preserved)
+
+interface AuthStateType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+}
+
+interface AuthActionsType {
   login: (userData: User) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
   registerWithEmail: (email: string, password: string, name?: string, phone?: string) => Promise<{ error?: string }>;
@@ -15,7 +33,10 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+interface AuthContextType extends AuthStateType, AuthActionsType {}
+
+const AuthStateContext = createContext<AuthStateType | null>(null);
+const AuthActionsContext = createContext<AuthActionsType | null>(null);
 
 const supabase = createClient();
 
@@ -29,9 +50,9 @@ const syncedUserIds = new Set<string>();
 async function syncUserToDatabase(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): Promise<User> {
   const fallbackUser: User = {
     id: supabaseUser.id,
-    name: (supabaseUser.user_metadata?.full_name as string) 
-      || (supabaseUser.user_metadata?.name as string) 
-      || supabaseUser.email?.split('@')[0] 
+    name: (supabaseUser.user_metadata?.full_name as string)
+      || (supabaseUser.user_metadata?.name as string)
+      || supabaseUser.email?.split('@')[0]
       || 'User',
     email: supabaseUser.email || '',
     image: (supabaseUser.user_metadata?.avatar_url as string) || null,
@@ -96,9 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (session?.user) {
-          // Set optimistic user immediately
           const optimisticUser: User = {
             id: session.user.id,
             name: (session.user.user_metadata?.full_name as string) || session.user.email?.split('@')[0] || 'User',
@@ -163,13 +183,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Legacy login
+  // ─── Stable Action Callbacks ──────────────────────────────────────────────
+  // useCallback ensures these function references don't change on re-render,
+  // so components that receive them as props won't re-render unnecessarily.
+
   const login = useCallback((userData: User) => {
     setUser(userData);
     localStorage.setItem('tenali_user', JSON.stringify(userData));
   }, []);
 
-  // Email/password login via Supabase Auth & Database fallback
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<{ error?: string }> => {
     // 1. Try Supabase Auth
     try {
@@ -204,7 +226,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [login]);
 
-  // Email/password registration via Database & Supabase Auth
   const registerWithEmail = useCallback(async (email: string, password: string, name?: string, phone?: string): Promise<{ error?: string }> => {
     let supabaseUserId: string | null = null;
 
@@ -213,12 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            full_name: name || email.split('@')[0],
-            phone: phone || null,
-          },
-        },
+        options: { data: { full_name: name || email.split('@')[0], phone: phone || null } },
       });
       if (data?.user) {
         supabaseUserId = data.user.id;
@@ -245,26 +261,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.ok) {
         return { error: data.error || 'Failed to create account' };
       }
-
       if (data.user) {
         login(data.user);
         return {};
       }
-
       return { error: 'Account created, please sign in' };
     } catch (err: any) {
       return { error: err.message || 'Registration failed' };
     }
   }, [login]);
 
-  // Google OAuth login
   const loginWithGoogle = useCallback(async () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${origin}/auth/callback`,
-      },
+      options: { redirectTo: `${origin}/auth/callback` },
     });
     if (error) {
       console.error('Google login error:', error);
@@ -272,7 +283,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Logout
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -280,26 +290,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     syncedUserIds.clear();
   }, []);
 
-  const isAuthenticated = !!user;
+  // ─── Memoized context values ───────────────────────────────────────────────
+  // useMemo ensures the context object reference only changes when user/isLoading
+  // actually changes — not on every render of AuthProvider's parent.
+  const stateValue = useMemo<AuthStateType>(
+    () => ({ user, isLoading, isAuthenticated: !!user }),
+    [user, isLoading]
+  );
+
+  const actionsValue = useMemo<AuthActionsType>(
+    () => ({ login, loginWithEmail, registerWithEmail, loginWithGoogle, logout }),
+    [login, loginWithEmail, registerWithEmail, loginWithGoogle, logout]
+  );
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isLoading,
-      isAuthenticated,
-      login,
-      loginWithEmail,
-      registerWithEmail,
-      loginWithGoogle,
-      logout,
-    }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthStateContext.Provider value={stateValue}>
+      <AuthActionsContext.Provider value={actionsValue}>
+        {children}
+      </AuthActionsContext.Provider>
+    </AuthStateContext.Provider>
   );
 }
 
+/** Full context (state + actions) — drop-in replacement for existing useAuth() callers */
 export function useAuth(): AuthContextType {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  const state = useContext(AuthStateContext);
+  const actions = useContext(AuthActionsContext);
+  if (!state || !actions) throw new Error('useAuth must be used within AuthProvider');
+  return { ...state, ...actions };
+}
+
+/** State-only hook — use in components that only read user data.
+ *  Will NOT re-render when action function references change. */
+export function useAuthState(): AuthStateType {
+  const ctx = useContext(AuthStateContext);
+  if (!ctx) throw new Error('useAuthState must be used within AuthProvider');
+  return ctx;
+}
+
+/** Actions-only hook — use in components that only trigger auth actions. */
+export function useAuthActions(): AuthActionsType {
+  const ctx = useContext(AuthActionsContext);
+  if (!ctx) throw new Error('useAuthActions must be used within AuthProvider');
   return ctx;
 }

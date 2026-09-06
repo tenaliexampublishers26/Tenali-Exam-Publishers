@@ -1,4 +1,5 @@
 'use client';
+import { memo } from 'react';
 import Link from 'next/link';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -11,7 +12,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+function ProductCard({ product }: ProductCardProps) {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const toast = useToast();
 
@@ -36,6 +37,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           alt={`${product.name} - India Post LDCE Exam Preparation Guide Book`}
           className={styles.image}
           loading="lazy"
+          decoding="async"
           width={400}
           height={533}
         />
@@ -129,3 +131,6 @@ export default function ProductCard({ product }: ProductCardProps) {
     </div>
   );
 }
+
+// memo: skips re-render when product prop reference is unchanged
+export default memo(ProductCard);

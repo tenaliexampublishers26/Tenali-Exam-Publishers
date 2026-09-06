@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+/* Google Fonts are loaded via <link rel="preconnect"> + <link rel="stylesheet"> in layout.tsx
+   to avoid this @import being render-blocking. Do NOT re-add the @import url() here. */
 @import "tailwindcss/theme";
 @import "tailwindcss/utilities";
 

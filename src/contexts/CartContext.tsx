@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef, useMemo } from 'react';
 import { CartItem, Product, LanguageCode } from '@/types';
 
 interface CartContextType {
@@ -42,11 +42,32 @@ function saveStoredCart(cartItems: CartItem[]): void {
   }
 }
 
+/** Debounce localStorage writes to prevent storage thrashing on rapid quantity changes */
+function useDebouncedStorageSave(items: CartItem[], delay = 300) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      return;
+    }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => saveStoredCart(items), delay);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [items, delay]);
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<CartItem | null>(null);
   const isInitialized = useRef(false);
+
+  // Debounced localStorage writes — prevents thrashing on rapid qty changes
+  useDebouncedStorageSave(items);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -75,12 +96,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Save cart to localStorage only after initialized
-  useEffect(() => {
-    if (isInitialized.current) {
-      saveStoredCart(items);
-    }
-  }, [items]);
+  // Note: localStorage persistence is now handled by useDebouncedStorageSave above.
+  // Removed the direct effect here to prevent double-writes.
 
   const addItem = useCallback((product: Product, language: LanguageCode | string, quantity = 1) => {
     const newItem: CartItem = {
@@ -145,8 +162,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     saveStoredCart([]);
   }, []);
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // useMemo: derived values only recalculate when `items` array changes
+  const totalItems = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items]
+  );
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  );
 
   return (
     <CartContext.Provider value={{

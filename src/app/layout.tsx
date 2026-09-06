@@ -98,7 +98,37 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        {/* ── Structured Data ─────────────────────────────────────── */}
         <JsonLd data={orgSchema} />
+
+        {/* ── Google Fonts — non-blocking preconnect strategy ──────
+            Step 1: Open connection to fonts.googleapis.com early
+            Step 2: Open crossorigin connection to fonts.gstatic.com (where the font files live)
+            Step 3: Load the CSS (async, non-blocking — does NOT delay page paint)
+            This replaces the CSS @import which was render-blocking.        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+        />
+
+        {/* ── LCP Hero Image Preload ────────────────────────────────
+            Tells the browser to start downloading the above-fold hero image
+            BEFORE it finishes parsing the HTML body.
+            Critical for Largest Contentful Paint score.               */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/hero-graduates-books.jpg"
+          fetchPriority="high"
+        />
+
+        {/* ── DNS Prefetch for third-party origins ─────────────────
+            Reduces DNS lookup latency for Razorpay and analytics     */}
+        <link rel="dns-prefetch" href="//checkout.razorpay.com" />
+        <link rel="dns-prefetch" href="//www.google-analytics.com" />
       </head>
       <body>
         <ClientLayout>{children}</ClientLayout>
