@@ -33,6 +33,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
   const [selectedLang, setSelectedLang] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [langError, setLangError] = useState(false);
+  const [addedSuccess, setAddedSuccess] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
   const galleryRef = useRef<HTMLDivElement | null>(null);
@@ -140,7 +141,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     : selectedStock <= 0;
   const isLowStock = !isOutOfStock && selectedStock > 0 && selectedStock <= 5;
 
-  const handleCheckout = () => {
+  const handleAddToCart = () => {
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -156,7 +157,8 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     }
     setLangError(false);
     addItem(product, selectedLang, quantity);
-    router.push('/checkout');
+    setAddedSuccess(true);
+    setTimeout(() => setAddedSuccess(false), 2500);
   };
 
   const handleBuyNow = () => {
@@ -441,12 +443,16 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
             {/* Actions */}
             <div className={styles.actionRow}>
               <button
-                onClick={handleCheckout}
+                onClick={handleAddToCart}
                 disabled={isOutOfStock}
                 className={`btn btn-primary btn-lg ${styles.actionBtn}`}
-                style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                style={{
+                  opacity: isOutOfStock ? 0.5 : 1,
+                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                  ...(addedSuccess ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' } : {})
+                }}
               >
-                {isOutOfStock ? 'Out of Stock' : 'Checkout'}
+                {isOutOfStock ? 'Out of Stock' : addedSuccess ? '✓ Added to Cart!' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleBuyNow}
@@ -520,12 +526,16 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
 
         <div className={styles.stickyActions}>
           <button
-            onClick={handleCheckout}
+            onClick={handleAddToCart}
             disabled={isOutOfStock}
             className={`btn btn-secondary ${styles.stickyCartBtn}`}
-            style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+            style={{
+              opacity: isOutOfStock ? 0.5 : 1,
+              cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+              ...(addedSuccess ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' } : {})
+            }}
           >
-            {isOutOfStock ? 'Unavailable' : 'Checkout'}
+            {isOutOfStock ? 'Unavailable' : addedSuccess ? '✓ Added' : 'Add to Cart'}
           </button>
           <button
             onClick={handleBuyNow}

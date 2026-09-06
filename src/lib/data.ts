@@ -8,9 +8,10 @@ export const WHATSAPP_DEFAULT_MSG = 'Hello Tenali Exams Publishers, I need assis
 export const WHATSAPP_CHAT_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_DEFAULT_MSG)}`;
 export const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029Va5gy9Z96H4IdxcRLF2L';
 export const COMPANY_ADDRESS = {
-  line1: 'D.No. 19-308, Namburu',
-  line2: 'Guntur District – 522508',
-  line3: 'Andhra Pradesh, India'
+  line1: 'new canal, Near, LVN tent house road',
+  line2: 'Namburu, Andhra Pradesh 522508',
+  line3: 'India',
+  full: 'Tenali Exams Publishers, new canal, Near, LVN tent house road, Namburu, Andhra Pradesh 522508'
 };
 
 export const products: Product[] = [
