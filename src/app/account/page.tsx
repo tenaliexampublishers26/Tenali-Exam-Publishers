@@ -199,7 +199,7 @@ export default function AccountPage(): React.JSX.Element {
                 addressesCount
               )}
             </div>
-            <div className={s.statLabel}>Addresses</div>
+            <div className={s.statLabel}>Address</div>
           </Link>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useToast } from '@/contexts/ToastContext';
-import { ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Package, Shield } from 'lucide-react';
+import { ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Package, Shield, MapPin } from 'lucide-react';
 import styles from './Navbar.module.css';
 
 interface NavLinkItem {
@@ -34,7 +34,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
   const { items: wishlistItems } = useWishlist();
   const toast = useToast();
   const wishlistCount = wishlistItems ? wishlistItems.length : 0;
-  
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
@@ -179,6 +179,10 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
                     <Heart size={16} />
                     <span>Wishlist</span>
                   </Link>
+                  <Link href="/account/addresses" className={styles.dropdownItem} onClick={() => setUserDropdownOpen(false)}>
+                    <MapPin size={16} />
+                    <span>Address</span>
+                  </Link>
                   <div className={styles.dropdownDivider}></div>
                   <button onClick={handleLogout} className={`${styles.dropdownItem} ${styles.logoutItem}`}>
                     <LogOut size={16} />
@@ -276,7 +280,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
                   Wishlist
                 </Link>
                 <Link href="/account/addresses" onClick={() => setMobileMenuOpen(false)} className={styles.mobileNavLink}>
-                  Addresses
+                  Address
                 </Link>
                 <button onClick={handleLogout} className={styles.mobileLogoutBtn}>
                   Log Out
