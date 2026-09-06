@@ -102,6 +102,7 @@ export const PAYMENT_STATUSES: Record<PaymentStatus, { label: string; color: str
   paid: { label: 'Paid', color: 'success' },
   failed: { label: 'Failed', color: 'error' },
   cancelled: { label: 'Cancelled', color: 'error' },
+  refund_pending: { label: 'Refund Pending', color: 'warning' },
   refunded: { label: 'Refunded', color: 'info' },
 };
 

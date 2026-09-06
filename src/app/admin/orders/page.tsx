@@ -799,6 +799,38 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
+              {/* Refund Info if cancelled / refunded */}
+              {(detailsModalOrder.status === 'cancelled' || detailsModalOrder.status === 'refunded' || detailsModalOrder.paymentStatus === 'refunded' || detailsModalOrder.paymentStatus === 'refund_pending') && (
+                <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                      Refund Information
+                    </span>
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">
+                      Standard Mode (4 to 6 business days)
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <span className="text-(--color-text-muted) block">Refund Amount</span>
+                      <span className="font-extrabold text-(--color-text-primary)">
+                        {formatPrice(detailsModalOrder.refundAmount || detailsModalOrder.total)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-(--color-text-muted) block">Refund ID</span>
+                      <span className="font-mono font-bold text-(--color-text-primary)">
+                        {detailsModalOrder.refundId || 'Auto-initiated'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-(--color-text-muted) block">Credit Timeline</span>
+                      <span className="font-bold text-blue-600">4-6 Business Days</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Tracking ID Editor — sets the Speed Post consignment number shown to the customer */}
               <div className="p-4 bg-(--color-bg-page) rounded-xl border border-(--color-border) space-y-3">
                 <div className="flex items-center justify-between">

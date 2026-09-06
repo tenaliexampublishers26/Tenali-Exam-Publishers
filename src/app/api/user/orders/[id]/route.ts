@@ -16,7 +16,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const orderResult = isUUID
       ? await sql`
         SELECT id, order_number as "orderNumber", subtotal, delivery_charge as "deliveryCharge", total,
-               status, payment_status as "paymentStatus", tracking_number as "trackingNumber",
+               status, payment_status as "paymentStatus", payment_id as "paymentId",
+               refund_id as "refundId", refund_status as "refundStatus",
+               refund_amount as "refundAmount", refunded_at as "refundedAt",
+               tracking_number as "trackingNumber",
                carrier, dispatched_at as "dispatchedAt", created_at as "createdAt", delivery_address as "deliveryAddress"
         FROM orders
         WHERE id = ${cleanOrderId}::uuid OR LOWER(order_number) = LOWER(${cleanOrderId})
@@ -24,7 +27,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       `
       : await sql`
         SELECT id, order_number as "orderNumber", subtotal, delivery_charge as "deliveryCharge", total,
-               status, payment_status as "paymentStatus", tracking_number as "trackingNumber",
+               status, payment_status as "paymentStatus", payment_id as "paymentId",
+               refund_id as "refundId", refund_status as "refundStatus",
+               refund_amount as "refundAmount", refunded_at as "refundedAt",
+               tracking_number as "trackingNumber",
                carrier, dispatched_at as "dispatchedAt", created_at as "createdAt", delivery_address as "deliveryAddress"
         FROM orders
         WHERE LOWER(order_number) = LOWER(${cleanOrderId})

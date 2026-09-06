@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { razorpay } from '@/lib/razorpay';
 
 const CANCELLABLE_STATUSES = ['placed', 'processing'];
 const CANCEL_WINDOW_HOURS = 24;
@@ -18,13 +19,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
     const orderResult = isUUID
       ? await sql`
-        SELECT id, user_id as "userId", status, payment_status as "paymentStatus", created_at as "createdAt"
+        SELECT id, order_number as "orderNumber", user_id as "userId", status,
+               payment_status as "paymentStatus", payment_id as "paymentId",
+               total, refund_id as "refundId", created_at as "createdAt"
         FROM orders
         WHERE id = ${orderId}::uuid OR order_number = ${orderId}
         LIMIT 1
       `
       : await sql`
-        SELECT id, user_id as "userId", status, payment_status as "paymentStatus", created_at as "createdAt"
+        SELECT id, order_number as "orderNumber", user_id as "userId", status,
+               payment_status as "paymentStatus", payment_id as "paymentId",
+               total, refund_id as "refundId", created_at as "createdAt"
         FROM orders
         WHERE order_number = ${orderId}
         LIMIT 1
@@ -61,13 +66,61 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       );
     }
 
-    const newPaymentStatus = order.paymentStatus === 'paid' ? 'refund_pending' : 'cancelled';
+    // --- Automatic Full Refund Initiation via Razorpay ---
+    // Note: Per policy, refunds are processed strictly in 'normal' speed (4 to 6 business days).
+    // Instant refund ('optimum') is explicitly NOT used.
+    let refundId: string | null = order.refundId || null;
+    let refundStatus: string | null = null;
+    const refundAmount = Number(order.total) || 0;
+    const isPaid = order.paymentStatus === 'paid';
+
+    if (isPaid && order.paymentId && !order.refundId) {
+      try {
+        const refundAmountPaise = Math.round(refundAmount * 100);
+        const refundResult = await razorpay.payments.refund(order.paymentId, {
+          amount: refundAmountPaise,
+          speed: 'normal', // Explicit standard/normal refund mode (4 to 6 business days). NEVER instant.
+          notes: {
+            reason: 'Order cancelled by customer before dispatch',
+            order_id: String(order.id),
+            order_number: String(order.orderNumber),
+            refund_speed: 'normal',
+            credit_timeline: '4 to 6 business days',
+          },
+          receipt: `REF-${order.orderNumber}`,
+        });
+
+        refundId = refundResult?.id || null;
+        refundStatus = refundResult?.status || 'processed';
+        console.log(`[Refund Success] Order #${order.orderNumber}: Refund ID ${refundId} initiated in normal speed (4-6 business days).`);
+      } catch (refundError: any) {
+        console.error('[Refund Warning] Razorpay refund error for order:', order.orderNumber, refundError);
+        const errorDesc = refundError?.error?.description || refundError?.message || '';
+        if (errorDesc.toLowerCase().includes('already been refunded') || errorDesc.toLowerCase().includes('fully refunded')) {
+          refundStatus = 'processed';
+        } else {
+          refundStatus = 'pending';
+        }
+      }
+    }
+
+    const newPaymentStatus = isPaid
+      ? (refundStatus === 'processed' ? 'refunded' : 'refund_pending')
+      : 'cancelled';
 
     const updated = await sql`
       UPDATE orders
-      SET status = 'cancelled', payment_status = ${newPaymentStatus}, updated_at = NOW()
+      SET status = 'cancelled',
+          payment_status = ${newPaymentStatus},
+          refund_id = COALESCE(${refundId}, refund_id),
+          refund_status = COALESCE(${refundStatus}, refund_status),
+          refund_amount = CASE WHEN ${isPaid} THEN ${refundAmount} ELSE refund_amount END,
+          refunded_at = CASE WHEN ${isPaid} AND refunded_at IS NULL THEN NOW() ELSE refunded_at END,
+          updated_at = NOW()
       WHERE id = ${order.id}
-      RETURNING id, status, payment_status as "paymentStatus"
+      RETURNING id, order_number as "orderNumber", status, payment_status as "paymentStatus",
+                refund_id as "refundId", refund_status as "refundStatus",
+                refund_amount as "refundAmount", refunded_at as "refundedAt"
     `;
 
     // Restock items that were decremented at order time.
@@ -113,13 +166,31 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           WHERE id = ${item.productId}
         `;
       } catch (restockErr) {
-        // Don't fail the whole cancellation if a single product's restock hiccups —
-        // the order cancellation itself is the priority.
         console.warn('Notice: Could not restock product', item.productId, restockErr);
       }
     }
 
-    return NextResponse.json({ success: true, order: updated[0] }, { status: 200 });
+    return NextResponse.json(
+      {
+        success: true,
+        order: updated[0],
+        refund: isPaid
+          ? {
+              initiated: true,
+              amount: refundAmount,
+              refundId: updated[0]?.refundId || refundId,
+              status: updated[0]?.refundStatus || refundStatus,
+              speed: 'normal',
+              timeline: '4 to 6 business days',
+              message: 'A full refund has been initiated and will be credited to your original payment method within 4 to 6 business days.',
+            }
+          : null,
+        message: isPaid
+          ? 'Order cancelled successfully. A full refund has been initiated and will be credited to your original payment method within 4 to 6 business days.'
+          : 'Order cancelled successfully.',
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error cancelling order:', error);
     return NextResponse.json({ error: 'Failed to cancel order. Please try again.' }, { status: 500 });

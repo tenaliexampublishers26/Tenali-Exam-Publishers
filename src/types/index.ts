@@ -89,6 +89,7 @@ export type PaymentStatus =
   | 'paid'
   | 'failed'
   | 'cancelled'
+  | 'refund_pending'
   | 'refunded';
 
 export interface OrderItem {
@@ -113,6 +114,11 @@ export interface Order {
   deliveryAddress: Address;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  paymentId?: string;
+  refundId?: string;
+  refundStatus?: string;
+  refundAmount?: number;
+  refundedAt?: string;
   trackingNumber?: string;
   carrier?: string;
   notes?: string;

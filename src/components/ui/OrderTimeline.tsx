@@ -25,12 +25,22 @@ const STATUS_STEPS = [
   { key: 'delivered', label: 'Delivered Successfully', Icon: CheckCircle },
 ];
 
-const SPECIAL_STATUSES: Record<string, { label: string; color: string; Icon: any }> = {
+const SPECIAL_STATUSES: Record<string, { label: string; description?: string; color: string; Icon: any }> = {
   payment_pending: { label: 'Payment Pending', color: '#FF9800', Icon: Clock },
   payment_failed: { label: 'Payment Failed', color: '#E53935', Icon: XCircle },
-  cancelled: { label: 'Cancelled', color: '#E53935', Icon: XCircle },
+  cancelled: {
+    label: 'Order Cancelled & Full Refund Initiated',
+    description: 'Full refund will be credited to your original payment method within 4 to 6 business days via standard banking clearance.',
+    color: '#e11d48',
+    Icon: XCircle,
+  },
   returned: { label: 'Returned', color: '#FF9800', Icon: RotateCcw },
-  refunded: { label: 'Refunded', color: '#2196F3', Icon: CreditCard },
+  refunded: {
+    label: 'Order Cancelled & Full Refund Initiated',
+    description: 'Full refund has been initiated to your original payment method (will reflect in 4 to 6 business days).',
+    color: '#10b981',
+    Icon: CreditCard,
+  },
 };
 
 export default function OrderTimeline({ currentStatus, statusHistory = [] }: OrderTimelineProps) {
@@ -42,15 +52,20 @@ export default function OrderTimeline({ currentStatus, statusHistory = [] }: Ord
         padding: '24px',
         background: `${specialStatus.color}11`,
         border: `1px solid ${specialStatus.color}33`,
-        borderRadius: 'var(--radius-md)',
+        borderRadius: 'var(--radius-md, 12px)',
         textAlign: 'center',
       }}>
         <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '50%', background: `${specialStatus.color}22`, marginBottom: '10px' }}>
           <SpecialIcon size={28} color={specialStatus.color} />
         </div>
-        <div style={{ fontWeight: 700, color: specialStatus.color, fontSize: '1.1rem' }}>
+        <div style={{ fontWeight: 700, color: specialStatus.color, fontSize: '1.1rem', marginBottom: specialStatus.description ? '6px' : '0' }}>
           {specialStatus.label}
         </div>
+        {specialStatus.description && (
+          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary, #475569)', maxWidth: '440px', marginInline: 'auto', lineHeight: 1.5 }}>
+            {specialStatus.description}
+          </p>
+        )}
       </div>
     );
   }

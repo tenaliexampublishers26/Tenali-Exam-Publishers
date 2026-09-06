@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { formatPrice } from '@/lib/utils';
-import { PackageOpen, Package, Calendar, ChevronRight, Truck, CheckCircle2, Clock, XCircle, ArrowLeft, Ban } from 'lucide-react';
+import { PackageOpen, Package, Calendar, ChevronRight, Truck, CheckCircle2, Clock, XCircle, ArrowLeft, Ban, CreditCard } from 'lucide-react';
 
 import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
 
@@ -23,7 +23,7 @@ export default function OrdersPage(): React.JSX.Element {
   const url = user?.id ? `/api/user/orders?userId=${user.id}` : '';
   const cached = url ? getCachedData<{ orders: any[] }>(url) : null;
   const [orders, setOrders] = useState<any[]>(cached ? cached.orders || [] : []);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cached);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,7 +46,10 @@ export default function OrdersPage(): React.JSX.Element {
 
     const fetchOrders = async () => {
       try {
-        const data = await fetchWithCache<{ orders: any[] }>(`/api/user/orders?userId=${user.id}`, { ttl: 10000 });
+        const data = await fetchWithCache<{ orders: any[] }>(`/api/user/orders?userId=${user.id}`, {
+          ttl: 30000,
+          forceRefresh: false,
+        });
         if (data?.orders && data.orders.length > 0) {
           setOrders(data.orders);
         } else {
@@ -80,13 +83,14 @@ export default function OrdersPage(): React.JSX.Element {
     fetchOrders();
   }, [user, authLoading]);
 
-  const handleCancelOrder = async (orderId: string) => {
-    if (!user?.id) return;
-    if (!window.confirm('Cancel this order? This cannot be undone.')) return;
+  const handleCancelOrder = async (order: any) => {
+    if (!user?.id || !order) return;
+    const confirmMessage = `Cancel Order #${order.orderNumber}?\n\nA full refund of ${formatPrice(order.total)} will be automatically initiated to your original payment method within 4 to 6 business days.\n(Instant refund is not supported).\n\nDo you want to proceed?`;
+    if (!window.confirm(confirmMessage)) return;
 
-    setCancellingId(orderId);
+    setCancellingId(order.id);
     try {
-      const res = await fetch(`/api/user/orders/${orderId}/cancel`, {
+      const res = await fetch(`/api/user/orders/${order.id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
@@ -98,9 +102,23 @@ export default function OrdersPage(): React.JSX.Element {
         return;
       }
 
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: 'cancelled' } : o)));
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? {
+                ...o,
+                status: 'cancelled',
+                paymentStatus: data.order?.paymentStatus || (data.refund ? 'refunded' : o.paymentStatus),
+                refundId: data.refund?.refundId || data.order?.refundId || o.refundId,
+                refundAmount: data.refund?.amount || data.order?.refundAmount || o.total,
+              }
+            : o
+        )
+      );
       invalidateCache(`/api/user/orders?userId=${user.id}`);
-      toast.success('Order cancelled successfully');
+      toast.success(
+        `Order #${order.orderNumber} cancelled. Full refund of ${formatPrice(order.total)} initiated (credited within 4 to 6 business days).`
+      );
     } catch (err) {
       toast.error('Failed to cancel order. Please try again.');
     } finally {
@@ -255,7 +273,7 @@ export default function OrdersPage(): React.JSX.Element {
               </div>
 
               {/* Speed Post Tracking Strip if available */}
-              {order.trackingNumber && (
+              {order.trackingNumber && order.status !== 'cancelled' && (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/50 text-xs">
                   <div className="flex items-center gap-2">
                     <Truck size={16} className="text-blue-600" />
@@ -273,10 +291,30 @@ export default function OrdersPage(): React.JSX.Element {
                 </div>
               )}
 
+              {/* Cancelled / Refund Status Strip */}
+              {(order.status === 'cancelled' || order.status === 'refunded' || order.paymentStatus === 'refunded' || order.paymentStatus === 'refund_pending') && (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300/60 dark:border-emerald-800/60 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CreditCard size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-800 dark:text-emerald-300">Full Refund Initiated: </span>
+                      <span className="text-emerald-950 dark:text-emerald-200">
+                        Credited to original payment method within <strong className="font-extrabold text-emerald-700 dark:text-emerald-300">4 to 6 business days</strong> (standard bank processing).
+                      </span>
+                    </div>
+                  </div>
+                  {order.refundId && (
+                    <span className="font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0 hidden sm:inline-block">
+                      Ref: {order.refundId}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Bottom Actions Row */}
               <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
                 <div>
-                  <div className="text-[11px] text-(--color-text-muted)">Total Paid</div>
+                  <div className="text-[11px] text-(--color-text-muted)">Total Amount</div>
                   <div className="font-extrabold text-base text-emerald-600 dark:text-emerald-400">
                     {formatPrice(order.total)}
                   </div>
@@ -291,7 +329,7 @@ export default function OrdersPage(): React.JSX.Element {
                   </Link>
                   {isOrderCancellable(order) && (
                     <button
-                      onClick={() => handleCancelOrder(order.id)}
+                      onClick={() => handleCancelOrder(order)}
                       disabled={cancellingId === order.id}
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white dark:bg-rose-500/10 dark:hover:bg-rose-600 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl transition-all shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     >

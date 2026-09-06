@@ -70,6 +70,10 @@ export const FAQ_DATA: FAQSection[] = [
         a: 'You can track your parcel anytime from our Track Order page using your Order ID and phone number/email. You will also receive Speed Post tracking numbers via SMS/WhatsApp upon dispatch.',
       },
       {
+        q: 'Can I cancel my order before dispatch, and how does the refund work?',
+        a: 'Yes, you can cancel your order anytime before it is dispatched directly from your My Orders page. When cancelled, a 100% full refund is automatically initiated to your original payment method. The refund will be credited to your bank account/UPI/card within 4 to 6 business days via standard banking settlement (instant refund is not supported).',
+      },
+      {
         q: 'What is your return or replacement policy for damaged books?',
         a: `If your package arrives damaged in transit, simply contact us at ${SUPPORT_EMAIL} within 7 days with photos, and we will dispatch a brand new replacement free of charge.`,
       },

@@ -6,7 +6,7 @@ import { formatPrice, formatDateTime } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { invalidateCache } from '@/lib/api-cache';
-import { FileText, Truck, Copy, Check, ExternalLink, Ban, MapPin } from 'lucide-react';
+import { FileText, Truck, Copy, Check, ExternalLink, Ban, MapPin, CreditCard, Clock, AlertCircle, X } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -31,6 +31,7 @@ export default function OrderDetailPage({ params }: PageProps): React.JSX.Elemen
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -52,7 +53,6 @@ export default function OrderDetailPage({ params }: PageProps): React.JSX.Elemen
 
   const handleCancelOrder = async () => {
     if (!user?.id || !order) return;
-    if (!window.confirm('Cancel this order? This cannot be undone.')) return;
 
     setCancelling(true);
     try {
@@ -68,9 +68,20 @@ export default function OrderDetailPage({ params }: PageProps): React.JSX.Elemen
         return;
       }
 
-      setOrder((prev: any) => ({ ...prev, status: 'cancelled' }));
+      setOrder((prev: any) => ({
+        ...prev,
+        status: 'cancelled',
+        paymentStatus: data.order?.paymentStatus || (data.refund ? 'refunded' : prev.paymentStatus),
+        refundId: data.refund?.refundId || data.order?.refundId || prev.refundId,
+        refundAmount: data.refund?.amount || data.order?.refundAmount || prev.total,
+        refundStatus: data.refund?.status || data.order?.refundStatus || 'processed',
+        refundedAt: data.order?.refundedAt || new Date().toISOString(),
+      }));
+      setShowCancelModal(false);
       invalidateCache(`/api/user/orders?userId=${user.id}`);
-      toast.success('Order cancelled successfully');
+      toast.success(
+        `Order cancelled. Full refund of ${formatPrice(order.total)} initiated (credited within 4 to 6 business days).`
+      );
     } catch (err) {
       toast.error('Failed to cancel order. Please try again.');
     } finally {
@@ -111,7 +122,7 @@ export default function OrderDetailPage({ params }: PageProps): React.JSX.Elemen
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {cancellable && (
             <button
-              onClick={handleCancelOrder}
+              onClick={() => setShowCancelModal(true)}
               disabled={cancelling}
               className="btn btn-sm"
               style={{
@@ -261,12 +272,246 @@ export default function OrderDetailPage({ params }: PageProps): React.JSX.Elemen
         </div>
       )}
 
+      {/* Refund Information Card for Cancelled / Refunded Orders */}
+      {(order.status === 'cancelled' || order.status === 'refunded' || order.paymentStatus === 'refunded' || order.paymentStatus === 'refund_pending') && (
+        <div
+          className="card"
+          style={{
+            padding: '24px',
+            marginBottom: '20px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(37, 99, 235, 0.06) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: '16px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+              }}
+            >
+              <CreditCard size={22} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--color-text-primary)' }}>
+                Full Refund Initiated
+              </div>
+              <div style={{ fontSize: '0.825rem', color: '#059669', fontWeight: 600 }}>
+                100% money back to your original payment method
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--color-bg-card, #ffffff)',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              border: '1px solid var(--color-border-light)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '16px',
+              marginBottom: '16px',
+            }}
+          >
+            <div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px' }}>
+                Refund Amount
+              </span>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                {formatPrice(order.refundAmount || order.total)}
+              </span>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px' }}>
+                Estimated Credit Time
+              </span>
+              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#2563eb' }}>
+                4 to 6 Business Days
+              </span>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px' }}>
+                Refund Mode
+              </span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+                Standard Bank Processing
+              </span>
+            </div>
+            {order.refundId && (
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'block', marginBottom: '2px' }}>
+                  Refund Reference ID
+                </span>
+                <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  {order.refundId}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              background: 'rgba(37, 99, 235, 0.08)',
+              padding: '12px 16px',
+              borderRadius: '10px',
+              fontSize: '0.825rem',
+              color: 'var(--color-text-primary)',
+              lineHeight: 1.5,
+            }}
+          >
+            <Clock size={18} color="#2563eb" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <strong>Payment Method Credit:</strong> The refund is credited directly back to the payment method you used (Bank Account, UPI, Debit Card, or Credit Card). As per banking settlement standards, this will reflect in your account within <strong>4 to 6 business days</strong>. Instant refund is not supported.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ padding: '28px' }}>
         <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', fontWeight: 600, marginBottom: '16px' }}>
           Order Timeline
         </h3>
         <OrderTimeline currentStatus={order.status} statusHistory={[]} />
       </div>
+
+      {/* Cancel Order Confirmation Modal */}
+      {showCancelModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => !cancelling && setShowCancelModal(false)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '480px',
+              width: '100%',
+              padding: '28px',
+              borderRadius: '20px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'rgba(225, 29, 72, 0.12)',
+                    color: '#e11d48',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ban size={20} />
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>Cancel Order</h3>
+              </div>
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={() => setShowCancelModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)',
+                  padding: '4px',
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+              Are you sure you want to cancel Order <strong>#{order.orderNumber}</strong>?
+            </p>
+
+            <div
+              style={{
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                borderRadius: '12px',
+                padding: '14px 16px',
+                marginBottom: '20px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#059669', fontSize: '0.9rem', marginBottom: '6px' }}>
+                <CreditCard size={16} />
+                <span>Full Refund: {formatPrice(order.total)}</span>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 1.45 }}>
+                A full 100% refund will be automatically initiated to your original payment method. The refund will be credited to your account within <strong>4 to 6 business days</strong> via standard banking processing. (Instant refund is not supported).
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={() => setShowCancelModal(false)}
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '8px 18px', fontWeight: 600 }}
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={handleCancelOrder}
+                className="btn btn-sm"
+                style={{
+                  padding: '8px 18px',
+                  fontWeight: 700,
+                  background: '#e11d48',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  opacity: cancelling ? 0.7 : 1,
+                  cursor: cancelling ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {cancelling ? (
+                  <>
+                    <Clock size={14} className="animate-spin" />
+                    <span>Processing Refund...</span>
+                  </>
+                ) : (
+                  <span>Yes, Cancel &amp; Refund</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

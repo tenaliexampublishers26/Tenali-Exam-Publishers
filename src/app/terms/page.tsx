@@ -114,9 +114,11 @@ export default function TermsPage(): React.JSX.Element {
             5. Returns &amp; Cancellations
           </h2>
           <p style={{ marginBottom: '20px' }}>
-            Cancellations are accepted before the order is dispatched. Free replacements are provided for
-            any book damaged in transit within 7 days of delivery. Contact us at {SUPPORT_EMAIL} for
-            support.
+            Cancellations are accepted before the order is dispatched. When an order is cancelled prior to
+            dispatch, a 100% full refund is automatically initiated to your original payment method. The refund
+            will be credited back to your account within <strong>4 to 6 business days</strong> as per standard
+            banking settlement cycles (instant refunds are not supported). Free replacements are provided for
+            any book damaged in transit within 7 days of delivery. Contact us at {SUPPORT_EMAIL} for support.
           </p>
 
           <h2
