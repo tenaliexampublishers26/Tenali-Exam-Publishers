@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useToast } from '@/contexts/ToastContext';
 import { ShoppingBag, Heart, Menu, X, ChevronDown, User, LogOut, Package, Shield } from 'lucide-react';
 import styles from './Navbar.module.css';
 
@@ -31,6 +32,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems } = useCart();
   const { items: wishlistItems } = useWishlist();
+  const toast = useToast();
   const wishlistCount = wishlistItems ? wishlistItems.length : 0;
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -73,6 +75,9 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
     setUserDropdownOpen(false);
     setMobileMenuOpen(false);
     await logout();
+    // Fire the toast only after logout has actually completed, so it never
+    // appears if the sign-out request fails midway.
+    toast.success('Logged out successfully.');
     router.push('/');
   };
 

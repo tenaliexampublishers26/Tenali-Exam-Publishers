@@ -4,7 +4,6 @@ import { SYLLABUS_DATABASE, CadreSyllabus } from '@/lib/syllabusData';
 import {
   BookOpen,
   Search,
-  CheckCircle2,
   FileText,
   X,
   ChevronDown,
@@ -199,7 +198,6 @@ export default function SyllabusModal({
                         <ul className={styles.itemList}>
                           {group.items.map((item, iIdx) => (
                             <li key={iIdx} className={styles.itemCell}>
-                              <span className={styles.checkMark}>✓</span>
                               <span>{item}</span>
                             </li>
                           ))}
@@ -238,7 +236,6 @@ export default function SyllabusModal({
               <div className={styles.tagsCloud}>
                 {currentCadre.tags.map((t, idx) => (
                   <span key={idx} className={styles.tagPill}>
-                    <CheckCircle2 size={12} className="text-emerald-500" />
                     {t}
                   </span>
                 ))}

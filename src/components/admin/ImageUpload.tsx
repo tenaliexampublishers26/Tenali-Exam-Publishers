@@ -109,6 +109,13 @@ export default function ImageUpload({
             : `Successfully uploaded ${newUrls.length} images to Supabase Storage!`
         );
       }
+
+      // Some files in the batch may have failed while others succeeded —
+      // surface those individually so the admin knows exactly which image
+      // needs to be retried, instead of a silent partial save.
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        data.errors.forEach((msg: string) => toast.error(msg));
+      }
     } catch (err: any) {
       console.error('Image upload failed:', err);
       toast.error(err.message || 'Image upload failed. Please try again.');

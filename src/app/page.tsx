@@ -245,13 +245,13 @@ export default function HomePage() {
                   ✅ No Cumulative Layout Shift (explicit width/height)
                   ✅ priority=true → browser preloads this above-fold image */}
               <Image
-                src="/images/hero-graduates-books.jpg"
-                alt="Successful Postal Exam Graduates with Tenali Exams Publishers Books"
+                src="/images/hero-study.jpg"
+                alt="Postal Exam Aspirant preparing with Tenali Exams Publishers PA/SA Guide Book"
                 className={styles.heroBannerImage}
-                width={540}
-                height={360}
+                width={576}
+                height={324}
                 priority
-                quality={85}
+                quality={90}
               />
             </div>
 

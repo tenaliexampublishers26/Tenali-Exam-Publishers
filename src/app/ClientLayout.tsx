@@ -15,7 +15,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
   const isAdminOrDemo = pathname.startsWith('/admin') || pathname.startsWith('/demo') || pathname.startsWith('/login');
-  const isAccount = pathname.startsWith('/account');
   const isCheckout = pathname.startsWith('/checkout');
   const isCart = pathname.startsWith('/cart');
   const isStudyMaterials = pathname.startsWith('/study-materials');
@@ -23,6 +22,14 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const isMaintenance = pathname.startsWith('/maintenance');
   
   const hideNavbarAndFooter = isAdminOrDemo || isCheckout || isCart || isStudyMaterials || isOrderConfirmation || isMaintenance;
+
+  // Footer is intentionally shown ONLY on the Home page, Privacy Policy page,
+  // and Terms & Conditions page — hidden everywhere else, independent of the
+  // navbar visibility rules above.
+  const isHome = pathname === '/';
+  const isPrivacyPolicy = pathname.startsWith('/privacy-policy');
+  const isTerms = pathname.startsWith('/terms');
+  const showFooter = isHome || isPrivacyPolicy || isTerms;
 
   return (
     <AuthProvider>
@@ -35,7 +42,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             <main style={isAdminOrDemo ? {} : { minHeight: 'calc(100dvh - var(--navbar-height))' }}>
               {children}
             </main>
-            {!hideNavbarAndFooter && !isAccount && <Footer />}
+            {showFooter && <Footer />}
             {!hideNavbarAndFooter && <FloatingSupport />}
           </ToastProvider>
         </WishlistProvider>

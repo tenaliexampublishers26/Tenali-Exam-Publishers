@@ -393,7 +393,7 @@
   z-index: 1;
   width: 100%;
   height: auto;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: 16px;
   box-shadow: 0 20px 44px -8px rgba(15, 23, 42, 0.22), 0 6px 18px rgba(15, 23, 42, 0.08);

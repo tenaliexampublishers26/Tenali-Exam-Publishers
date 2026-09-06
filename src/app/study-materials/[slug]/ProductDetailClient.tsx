@@ -142,12 +142,17 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     : selectedStock <= 0;
   const isLowStock = !isOutOfStock && selectedStock > 0 && selectedStock <= 5;
 
-  // Track whether this product is already in the user's cart
+  // Track whether the CURRENTLY SELECTED medium of this product is already
+  // in the user's cart. This must be scoped to the active language — a
+  // customer who already added the English medium and then switches to
+  // Telugu should still see "Add to Cart" for Telugu, not "Go to Cart".
+  // `activeLangCode` already resolves to 'en' for single-medium products
+  // (no selector shown) and to the picked medium otherwise.
   const isItemInCart = Boolean(
-    product && items.some(
-      (item) => item.productId === product.id && (!selectedLang || item.language === selectedLang || !item.language)
+    product && activeLangCode && items.some(
+      (item) => item.productId === product.id && item.language === activeLangCode
     )
-  ) || Boolean(product && items.some((item) => item.productId === product.id));
+  );
 
   const handleCartAction = () => {
     if (isItemInCart) {
