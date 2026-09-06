@@ -8,7 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { useToast } from '@/contexts/ToastContext';
 import { formatPrice, getLanguageDisplay } from '@/lib/utils';
-import { Truck, ShieldCheck, PackageCheck, Mail, ArrowLeft, BookOpen, FileText } from 'lucide-react';
+import { Truck, ShieldCheck, PackageCheck, Mail, ArrowLeft, BookOpen, FileText, ShoppingBag } from 'lucide-react';
 import SyllabusModal from '@/components/ui/SyllabusModal';
 import styles from './product-detail.module.css';
 
@@ -26,7 +26,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
   // /api/products/[slug] directly with no CDN cache, so it's always current.
   const product = fetchedProduct || initialProduct;
 
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const toast = useToast();
 
@@ -142,6 +142,21 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     : selectedStock <= 0;
   const isLowStock = !isOutOfStock && selectedStock > 0 && selectedStock <= 5;
 
+  // Track whether this product is already in the user's cart
+  const isItemInCart = Boolean(
+    product && items.some(
+      (item) => item.productId === product.id && (!selectedLang || item.language === selectedLang || !item.language)
+    )
+  ) || Boolean(product && items.some((item) => item.productId === product.id));
+
+  const handleCartAction = () => {
+    if (isItemInCart) {
+      router.push('/cart');
+      return;
+    }
+    handleAddToCart();
+  };
+
   const handleAddToCart = () => {
     if (isAdding) return;
     if (productLangs.length > 0 && !selectedLang) {
@@ -163,10 +178,11 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
     const langToUse = selectedLang || (productLangs.length > 0 ? '' : 'en');
     addItem(product, langToUse, quantity);
     setAddedSuccess(true);
+    toast.success('Added to cart!');
     setTimeout(() => {
       setAddedSuccess(false);
       setIsAdding(false);
-    }, 1200);
+    }, 600);
   };
 
   const handleBuyNow = () => {
@@ -471,16 +487,33 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
             {/* Actions */}
             <div className={styles.actionRow}>
               <button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock || isAdding}
+                onClick={handleCartAction}
+                disabled={!isItemInCart && (isOutOfStock || isAdding)}
                 className={`btn btn-primary btn-lg ${styles.actionBtn}`}
                 style={{
-                  opacity: (isOutOfStock || isAdding) ? 0.6 : 1,
-                  cursor: (isOutOfStock || isAdding) ? 'not-allowed' : 'pointer',
-                  ...(addedSuccess ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' } : {})
+                  opacity: (!isItemInCart && (isOutOfStock || isAdding)) ? 0.6 : 1,
+                  cursor: (!isItemInCart && (isOutOfStock || isAdding)) ? 'not-allowed' : 'pointer',
+                  ...(isItemInCart
+                    ? { background: '#059669', borderColor: '#059669', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }
+                    : addedSuccess
+                    ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' }
+                    : {})
                 }}
               >
-                {isOutOfStock ? 'Out of Stock' : addedSuccess ? '✓ Added to Cart!' : isAdding ? 'Adding...' : 'Add to Cart'}
+                {isOutOfStock && !isItemInCart ? (
+                  'Out of Stock'
+                ) : isItemInCart ? (
+                  <>
+                    <ShoppingBag size={18} />
+                    <span>Go to Cart &rarr;</span>
+                  </>
+                ) : addedSuccess ? (
+                  '✓ Added to Cart!'
+                ) : isAdding ? (
+                  'Adding...'
+                ) : (
+                  'Add to Cart'
+                )}
               </button>
               <button
                 onClick={handleBuyNow}
@@ -569,16 +602,33 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
 
         <div className={styles.stickyActions}>
           <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock || isAdding}
+            onClick={handleCartAction}
+            disabled={!isItemInCart && (isOutOfStock || isAdding)}
             className={`btn btn-secondary ${styles.stickyCartBtn}`}
             style={{
-              opacity: (isOutOfStock || isAdding) ? 0.6 : 1,
-              cursor: (isOutOfStock || isAdding) ? 'not-allowed' : 'pointer',
-              ...(addedSuccess ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' } : {})
+              opacity: (!isItemInCart && (isOutOfStock || isAdding)) ? 0.6 : 1,
+              cursor: (!isItemInCart && (isOutOfStock || isAdding)) ? 'not-allowed' : 'pointer',
+              ...(isItemInCart
+                ? { background: '#059669', borderColor: '#059669', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }
+                : addedSuccess
+                ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' }
+                : {})
             }}
           >
-            {isOutOfStock ? 'Unavailable' : addedSuccess ? '✓ Added' : isAdding ? 'Adding...' : 'Add to Cart'}
+            {isOutOfStock && !isItemInCart ? (
+              'Unavailable'
+            ) : isItemInCart ? (
+              <>
+                <ShoppingBag size={15} />
+                <span>Go to Cart</span>
+              </>
+            ) : addedSuccess ? (
+              '✓ Added'
+            ) : isAdding ? (
+              'Adding...'
+            ) : (
+              'Add to Cart'
+            )}
           </button>
           <button
             onClick={handleBuyNow}

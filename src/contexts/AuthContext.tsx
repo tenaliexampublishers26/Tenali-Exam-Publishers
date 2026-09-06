@@ -104,11 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     isMounted.current = true;
 
-    // Load initial stored user optimistically
+    // Load initial stored user optimistically to unblock dashboard navigation immediately
     const storedUser = localStorage.getItem('tenali_user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.id) {
+          setUser(parsed);
+          setIsLoading(false);
+        }
       } catch {
         localStorage.removeItem('tenali_user');
       }

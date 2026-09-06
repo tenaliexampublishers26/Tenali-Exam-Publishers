@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { serverCache } from '@/lib/server-cache';
+import { revalidatePath } from 'next/cache';
 
 export async function GET() {
   try {
@@ -100,8 +102,20 @@ export async function POST(request: Request) {
         ${id}, ${cleanSlug}, ${name}, ${price}, ${totalStock}, ${category}, ${description}, ${primaryImage}, ${sql.json(imagesArr)},
         ${bundleTitle || null}, ${booksIncluded || 1}, ${badge || null}, ${sql.json(languagesArr)}
       )
-      RETURNING id, name
+      RETURNING id, name, slug
     `;
+
+    // Purge server caches
+    serverCache.invalidateByTag('products');
+    serverCache.invalidate('all-products');
+    try {
+      revalidatePath('/');
+      revalidatePath('/study-materials');
+      revalidatePath('/api/products');
+      revalidatePath('/api/admin/products');
+    } catch (e) {
+      // Safe fallback
+    }
 
     return NextResponse.json({ success: true, product: result[0] }, { status: 201 });
   } catch (error) {

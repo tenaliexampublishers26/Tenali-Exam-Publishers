@@ -8,6 +8,7 @@ import Link from 'next/link';
 import ImageUpload from '@/components/admin/ImageUpload';
 import { SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
 import ProductMediumsEditor, { MediumItem } from '@/components/admin/ProductMediumsEditor';
+import { invalidateCache } from '@/lib/api-cache';
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -94,6 +95,9 @@ export default function AddProductPage() {
       });
       
       if (res.ok) {
+        invalidateCache('/api/admin/products');
+        invalidateCache('/api/products');
+        invalidateCache('/api/admin');
         toast.success('Product added successfully');
         router.push('/admin/products');
       } else {

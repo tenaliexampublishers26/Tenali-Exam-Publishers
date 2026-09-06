@@ -24,7 +24,11 @@ import {
   ArrowLeft, 
   CreditCard,
   Lock,
-  ShoppingBag
+  ShoppingBag,
+  CheckCircle2,
+  Copy,
+  ArrowRight,
+  Truck
 } from 'lucide-react';
 
 // ─── Razorpay Types ──────────────────────────────────────────────────────────
@@ -88,12 +92,15 @@ function loadRazorpayScript(): Promise<boolean> {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCart();
+  const total = subtotal + DELIVERY_CHARGE;
   const { user, isAuthenticated, isLoading } = useAuth();
   const toast = useToast();
   const [step, setStep] = useState(0);
   const stepRef = useRef(0); // persist step across re-renders caused by auth state changes
   const [loading, setLoading] = useState(false);
   const [isOrderCompleted, setIsOrderCompleted] = useState(false);
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
+  const [copiedOrderId, setCopiedOrderId] = useState(false);
 
   // Keep stepRef in sync with step state
   const goToStep = (n: number) => { stepRef.current = n; setStep(n); };
@@ -166,14 +173,169 @@ export default function CheckoutPage() {
     );
   }
 
-  if (isOrderCompleted) {
+  // ─── Order Confirmed Pop-up Modal ──────────────────────────────────────────
+  if (isOrderCompleted && completedOrderId) {
     return (
-      <div style={{ textAlign: 'center', padding: '100px 20px', maxWidth: '450px', margin: '0 auto' }}>
-        <div style={{ display: 'inline-flex', padding: '24px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%', marginBottom: '24px', color: '#10B981' }}>
-          <Check size={48} strokeWidth={2.5} />
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        animation: 'fadeIn 0.3s ease',
+      }}>
+        <div style={{
+          background: 'var(--color-bg-card, #ffffff)',
+          border: '1px solid var(--color-border, #e2e8f0)',
+          borderRadius: '24px',
+          maxWidth: '520px',
+          width: '100%',
+          padding: '36px 28px',
+          textAlign: 'center',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        }}>
+          {/* Animated Success Badge */}
+          <div style={{
+            width: '84px',
+            height: '84px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)',
+            border: '2px solid rgba(16, 185, 129, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 20px',
+            color: '#10B981',
+            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.15)',
+          }}>
+            <CheckCircle2 size={46} strokeWidth={2.2} />
+          </div>
+
+          <h2 style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: '1.75rem',
+            fontWeight: 800,
+            color: 'var(--color-text-primary, #0f172a)',
+            marginBottom: '6px',
+            letterSpacing: '-0.5px'
+          }}>
+            Order Confirmed!
+          </h2>
+          <p style={{
+            color: 'var(--color-text-secondary, #475569)',
+            fontSize: '0.95rem',
+            marginBottom: '20px',
+          }}>
+            Payment completed successfully! We are preparing your study materials.
+          </p>
+
+          {/* Order ID Box */}
+          <div style={{
+            background: 'var(--color-bg-page, #f8fafc)',
+            border: '1px dashed var(--color-border, #cbd5e1)',
+            borderRadius: '14px',
+            padding: '12px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '22px',
+          }}>
+            <div style={{ textAlign: 'left' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>
+                Order Reference
+              </span>
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '1.05rem', color: '#2563eb' }}>
+                #{completedOrderId}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(completedOrderId);
+                setCopiedOrderId(true);
+                setTimeout(() => setCopiedOrderId(false), 2000);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'var(--color-bg-card, #ffffff)',
+                border: '1px solid var(--color-border, #e2e8f0)',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                color: copiedOrderId ? '#10B981' : 'var(--color-text-primary)',
+              }}
+            >
+              {copiedOrderId ? <Check size={14} /> : <Copy size={14} />}
+              {copiedOrderId ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Summary Details */}
+          <div style={{
+            background: 'var(--color-bg-page, #f8fafc)',
+            borderRadius: '14px',
+            padding: '14px 18px',
+            textAlign: 'left',
+            marginBottom: '24px',
+            fontSize: '0.85rem',
+            color: 'var(--color-text-secondary, #475569)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Total Paid:</span>
+              <strong style={{ color: '#10b981', fontSize: '0.95rem' }}>{formatPrice(total)}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Delivery Via:</span>
+              <span>India Post Speed Post</span>
+            </div>
+            {address?.fullName && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Recipient:</span>
+                <span>{address.fullName} ({address.pinCode})</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Link
+              href={`/order-confirmation/${completedOrderId}`}
+              className="btn btn-primary btn-lg"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+              }}
+            >
+              View Order Details &amp; Invoice <ArrowRight size={18} />
+            </Link>
+            <Link
+              href={`/track-order?orderNumber=${completedOrderId}`}
+              className="btn btn-ghost"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                fontSize: '0.85rem',
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              <Truck size={16} /> Track Order Progress
+            </Link>
+          </div>
         </div>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '8px' }}>Payment Successful!</h1>
-        <p style={{ color: 'var(--color-text-muted)' }}>Redirecting you to your order confirmation...</p>
       </div>
     );
   }
@@ -210,8 +372,6 @@ export default function CheckoutPage() {
       </div>
     );
   }
-
-  const total = subtotal + DELIVERY_CHARGE;
 
   const validateAddress = (): boolean => {
     const e: Record<string, string> = {};
@@ -372,6 +532,7 @@ export default function CheckoutPage() {
               localStorage.setItem('tep_orders', JSON.stringify(ordersList));
             } catch {}
 
+            setCompletedOrderId(finalOrderId);
             setIsOrderCompleted(true);
             clearCart();
 
@@ -382,7 +543,10 @@ export default function CheckoutPage() {
             }
 
             toast.success('Payment successful! Order placed.');
-            router.push(`/order-confirmation/${finalOrderId}`);
+            // Allow user to see the confirmed order popup, then auto-redirect
+            setTimeout(() => {
+              router.push(`/order-confirmation/${finalOrderId}`);
+            }, 4000);
           } catch (err) {
             console.error('Error verifying payment:', err);
             toast.error('An error occurred after payment. Please contact support.');

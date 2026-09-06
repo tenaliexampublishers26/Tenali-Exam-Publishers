@@ -8,6 +8,7 @@ import Link from 'next/link';
 import ImageUpload from '@/components/admin/ImageUpload';
 import { SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
 import ProductMediumsEditor, { MediumItem } from '@/components/admin/ProductMediumsEditor';
+import { invalidateCache } from '@/lib/api-cache';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -145,6 +146,10 @@ export default function EditProductPage({ params }: PageProps) {
       });
       
       if (res.ok) {
+        invalidateCache('/api/admin/products');
+        invalidateCache('/api/products');
+        invalidateCache(`/api/products/${id}`);
+        invalidateCache('/api/admin');
         toast.success('Product updated successfully');
         router.push('/admin/products');
       } else {

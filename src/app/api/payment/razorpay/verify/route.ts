@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     );
     const productRows = productIds.length > 0
       ? await sql`
-          SELECT id, price, languages, stock FROM products WHERE id = ANY(${sql.array(productIds as (string | number)[])})
+          SELECT id, price, languages, stock FROM products WHERE id IN ${sql(productIds)}
         `
       : [];
     const productMap = new Map<string, any>(
@@ -85,6 +85,18 @@ export async function POST(request: Request) {
     );
 
     // ─── 4. Insert Order Row ─────────────────────────────────────────────────
+    let validUserId = null;
+    if (userId) {
+      try {
+        const userCheck = await sql`SELECT id FROM users WHERE id = ${userId} LIMIT 1`;
+        if (userCheck.length > 0) {
+          validUserId = userId;
+        }
+      } catch (userErr) {
+        console.warn('Could not verify userId for foreign key:', userErr);
+      }
+    }
+
     const orderId = generateOrderId();
     const addressJson = typeof deliveryAddress === 'string'
       ? deliveryAddress
@@ -96,7 +108,7 @@ export async function POST(request: Request) {
         delivery_address, status, payment_status, carrier,
         payment_id, razorpay_order_id, idempotency_key
       ) VALUES (
-        ${orderId}, ${userId || null}, ${subtotal}, ${deliveryCharge}, ${total},
+        ${orderId}, ${validUserId}, ${subtotal}, ${deliveryCharge}, ${total},
         ${addressJson}::jsonb, 'placed', 'paid', 'India Post Speed Post',
         ${razorpayPaymentId}, ${razorpayOrderId}, ${idempotencyKey || null}
       ) RETURNING id

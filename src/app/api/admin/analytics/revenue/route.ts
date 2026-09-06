@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { withServerCache } from '@/lib/server-cache';
 
 export async function GET(request: Request) {
   try {
@@ -8,6 +9,12 @@ export async function GET(request: Request) {
     const range = searchParams.get('range') || '30days'; // 'today' | 'yesterday' | '7days' | '30days' | 'thismonth' | 'lastmonth' | 'thisyear' | 'custom'
     const startStr = searchParams.get('startDate');
     const endStr = searchParams.get('endDate');
+
+    const cacheKey = `admin-rev-${period}-${range}-${startStr || ''}-${endStr || ''}`;
+
+    const data = await withServerCache(
+      cacheKey,
+      async () => {
 
     let currentStart = new Date();
     let currentEnd = new Date();
@@ -183,23 +190,37 @@ export async function GET(request: Request) {
 
     const chartData = Array.from(chartDataMap.values());
 
+        return {
+          summary: {
+            totalRevenue: currentTotalRevenue,
+            orderCount: currentOrderCount,
+            averageRevenue: currentAverageRevenue,
+            revenueGrowth,
+            orderGrowth,
+            prevTotalRevenue,
+            prevOrderCount
+          },
+          chartData,
+          range,
+          period
+        };
+      },
+      {
+        ttl: 15_000,
+        tags: ['admin-analytics', 'orders'],
+        staleWhileRevalidate: true,
+      }
+    );
+
     return NextResponse.json({
       success: true,
-      data: {
-        summary: {
-          totalRevenue: currentTotalRevenue,
-          orderCount: currentOrderCount,
-          averageRevenue: currentAverageRevenue,
-          revenueGrowth,
-          orderGrowth,
-          prevTotalRevenue,
-          prevOrderCount
-        },
-        chartData,
-        range,
-        period
-      }
-    }, { status: 200 });
+      data,
+    }, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+      },
+    });
 
   } catch (error) {
     console.error('Error calculating revenue analytics:', error);

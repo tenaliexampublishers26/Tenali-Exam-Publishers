@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { serverCache } from '@/lib/server-cache';
+import { revalidatePath } from 'next/cache';
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -20,6 +22,9 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       primaryImage = String(image).trim();
       imagesArr = primaryImage ? [primaryImage] : [];
     }
+
+    const sanitizedPrimaryImage = primaryImage && primaryImage.trim() ? primaryImage.trim() : null;
+    const sanitizedImagesJson = imagesArr && imagesArr.length > 0 ? sql.json(imagesArr) : null;
 
     let languagesArr: Array<{ code: string; name: string; stock: number }> | null = null;
     let totalStock: number | null = null;
@@ -62,8 +67,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         price = COALESCE(${price}, price),
         stock = COALESCE(${totalStock}, stock),
         description = COALESCE(${description}, description),
-        image = COALESCE(${primaryImage}, image),
-        images = COALESCE(${imagesArr !== null ? sql.json(imagesArr) : null}, images),
+        image = COALESCE(${sanitizedPrimaryImage}, image),
+        images = COALESCE(${sanitizedImagesJson}, images),
         category = COALESCE(${category}, category),
         bundle_title = COALESCE(${bundleTitle}, bundle_title),
         books_included = COALESCE(${booksIncluded}, books_included),
@@ -71,11 +76,31 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
         languages = COALESCE(${languagesArr ? sql.json(languagesArr) : null}, languages),
         updated_at = NOW()
       WHERE id = ${productId}
-      RETURNING id, name, stock
+      RETURNING id, slug, name, stock, image, images
     `;
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    // Immediately purge caches so customer-facing catalog reflects changes instantly
+    serverCache.invalidateByTag('products');
+    serverCache.invalidate('all-products');
+    serverCache.invalidate(`product-${productId}`);
+    if (result[0]?.slug) {
+      serverCache.invalidate(`product-${result[0].slug}`);
+    }
+
+    try {
+      revalidatePath('/');
+      revalidatePath('/study-materials');
+      if (result[0]?.slug) {
+        revalidatePath(`/study-materials/${result[0].slug}`);
+      }
+      revalidatePath('/api/products');
+      revalidatePath('/api/admin/products');
+    } catch (revalidateErr) {
+      console.warn('Notice: revalidatePath in API:', revalidateErr);
     }
 
     return NextResponse.json({ success: true, product: result[0] }, { status: 200 });
