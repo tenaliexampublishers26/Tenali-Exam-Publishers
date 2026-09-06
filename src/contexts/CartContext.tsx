@@ -9,6 +9,8 @@ interface CartContextType {
   addItem: (product: Product, language: LanguageCode | string, quantity?: number) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  /** Change the language of a cart item. Re-keys the item id so the new language is part of the stable id. */
+  updateLanguage: (itemId: string, newLanguage: string) => void;
   clearCart: () => void;
   clearLastAddedItem: () => void;
   totalItems: number;
@@ -45,6 +47,10 @@ function sanitizeCartItem(raw: any): CartItem | null {
   const language = normalizeLanguage(raw.language);
   const stableId = `${productId}_${language}`;
 
+  // Preserve availableLanguages if stored in localStorage
+  let availableLanguages = raw.availableLanguages;
+  if (!Array.isArray(availableLanguages)) availableLanguages = undefined;
+
   return {
     id: stableId,
     productId,
@@ -53,6 +59,7 @@ function sanitizeCartItem(raw: any): CartItem | null {
     productImage: String(raw.productImage || raw.image || '/images/book-mts-postman.jpg'),
     price,
     language,
+    availableLanguages,
     quantity,
     badge: raw.badge ? String(raw.badge) : undefined,
     bundleTitle: raw.bundleTitle ? String(raw.bundleTitle) : (productId === 'p1' ? '2-Book Preparation Set' : productId === 'p2' ? '3-Book Preparation Set' : undefined),
@@ -183,6 +190,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       productImage: product.image,
       price: typeof product.price === 'number' ? product.price : parseFloat(String(product.price)) || 0,
       language: normalizedLang,
+      // Store available languages so checkout can render a language selector without an API call
+      availableLanguages: Array.isArray(product.languages) ? product.languages : undefined,
       quantity: safeQty,
       badge: product.badge,
       bundleTitle: resolvedBundleTitle,
@@ -211,6 +220,51 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
 
     setLastAddedItem(newItem);
+  }, []);
+
+  /**
+   * Change the language of an existing cart item.
+   * Because the stable id encodes the language (`productId_lang`), we must
+   * replace the item entirely with a new id when the language changes.
+   * If a sibling item with the target language already exists for the same
+   * product, we merge quantities rather than creating a duplicate.
+   */
+  const updateLanguage = useCallback((itemId: string, newLanguage: string) => {
+    const normalizedNew = normalizeLanguage(newLanguage);
+    setItems(prev => {
+      const idx = prev.findIndex(item => item.id === itemId);
+      if (idx === -1) return prev;
+      const existing = prev[idx];
+      if (normalizeLanguage(existing.language) === normalizedNew) return prev; // no-op
+
+      const newId = `${existing.productId}_${normalizedNew}`;
+      const siblingIdx = prev.findIndex(item => item.id === newId);
+
+      const updated = prev.filter((_, i) => i !== idx); // remove old item
+      if (siblingIdx !== -1) {
+        // Merge into the existing sibling
+        const adjustedSiblingIdx = siblingIdx > idx ? siblingIdx - 1 : siblingIdx;
+        const merged = [...updated];
+        merged[adjustedSiblingIdx] = {
+          ...merged[adjustedSiblingIdx],
+          quantity: merged[adjustedSiblingIdx].quantity + existing.quantity,
+        };
+        return merged;
+      }
+
+      // Insert updated item at the same position
+      const insertAt = Math.min(idx, updated.length);
+      const newItem: CartItem = {
+        ...existing,
+        id: newId,
+        language: normalizedNew,
+      };
+      return [
+        ...updated.slice(0, insertAt),
+        newItem,
+        ...updated.slice(insertAt),
+      ];
+    });
   }, []);
 
   const clearLastAddedItem = useCallback(() => {
@@ -252,6 +306,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       addItem,
       removeItem,
       updateQuantity,
+      updateLanguage,
       clearCart,
       clearLastAddedItem,
       totalItems,

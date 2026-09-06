@@ -28,13 +28,16 @@ import {
   CheckCircle2,
   Copy,
   ArrowRight,
-  Truck
+  Truck,
+  Trash2,
+  ChevronDown
 } from 'lucide-react';
 
 // ─── Razorpay Types ──────────────────────────────────────────────────────────
 declare global {
   interface Window {
     Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+    crypto: Crypto;
   }
 }
 
@@ -89,9 +92,18 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
+/** Generate a collision-resistant idempotency key */
+function generateIdempotencyKey(): string {
+  if (typeof window !== 'undefined' && window.crypto?.randomUUID) {
+    return `idem_${window.crypto.randomUUID()}`;
+  }
+  // Fallback for older browsers
+  return `idem_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, updateQuantity, removeItem, updateLanguage } = useCart();
   const total = subtotal + DELIVERY_CHARGE;
   const { user, isAuthenticated, isLoading } = useAuth();
   const toast = useToast();
@@ -408,7 +420,13 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 2. Create a Razorpay order on the server
+      // 2. Generate a stable idempotency key for this payment attempt.
+      //    This key is sent to both create-order (to store in payment_session)
+      //    and verify (to prevent duplicate orders on retry).
+      const idempotencyKey = generateIdempotencyKey();
+
+      // 3. Create a Razorpay order on the server.
+      //    We pass all item metadata so the server can store it in payment_sessions.
       const orderRes = await fetch('/api/payment/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -417,9 +435,17 @@ export default function CheckoutPage() {
             productId: item.productId,
             language: item.language,
             quantity: item.quantity,
+            productName: item.productName,
+            productSlug: item.productSlug,
+            productImage: item.productImage,
+            bundleTitle: item.bundleTitle,
+            booksIncluded: item.booksIncluded,
           })),
           currency: 'INR',
           receipt: `tep_${Date.now()}`,
+          userId: user?.id || null,
+          deliveryAddress: address,
+          idempotencyKey,
         }),
       });
 
@@ -470,9 +496,24 @@ export default function CheckoutPage() {
           color: '#1a2b4c',
         },
 
-        // 4. Handle successful payment
+        // 4. Handle successful payment — verify server-side and create order in DB
         handler: async (response: RazorpayPaymentResponse) => {
           try {
+            // Take a snapshot of the cart items at the moment of payment success.
+            // The cart context items may change if the user navigates away, so we
+            // capture them here inside the handler closure.
+            const purchasedItems = items.map(item => ({
+              productId: item.productId,
+              productName: item.productName,
+              productSlug: item.productSlug,
+              productImage: item.productImage,
+              price: item.price,
+              language: item.language,
+              quantity: item.quantity,
+              bundleTitle: item.bundleTitle,
+              booksIncluded: item.booksIncluded,
+            }));
+
             // Verify payment signature and create order in database
             const verifyRes = await fetch('/api/payment/razorpay/verify', {
               method: 'POST',
@@ -482,18 +523,23 @@ export default function CheckoutPage() {
                 razorpayPaymentId: response.razorpay_payment_id,
                 razorpaySignature: response.razorpay_signature,
                 userId: user?.id || null,
-                items,
+                // Pass items as fallback only — server prefers payment_session data
+                items: purchasedItems,
                 subtotal,
                 deliveryCharge: DELIVERY_CHARGE,
                 total,
                 deliveryAddress: address,
+                idempotencyKey,
               }),
             });
 
             const verifyData = await verifyRes.json();
 
             if (!verifyData.success) {
-              toast.error('Payment verification failed. Please contact support with your payment ID: ' + response.razorpay_payment_id);
+              toast.error(
+                'Payment verification failed. Please contact support with your payment ID: ' +
+                response.razorpay_payment_id
+              );
               setLoading(false);
               return;
             }
@@ -504,17 +550,7 @@ export default function CheckoutPage() {
             const newOrder: Order = {
               id: finalOrderId,
               orderNumber: finalOrderId,
-              items: items.map(item => ({
-                productId: item.productId,
-                productName: item.productName,
-                productSlug: item.productSlug,
-                productImage: item.productImage,
-                price: item.price,
-                language: item.language,
-                quantity: item.quantity,
-                bundleTitle: item.bundleTitle,
-                booksIncluded: item.booksIncluded,
-              })),
+              items: purchasedItems,
               subtotal,
               deliveryCharge: DELIVERY_CHARGE,
               total,
@@ -768,7 +804,7 @@ export default function CheckoutPage() {
                 <strong style={{ fontSize: '1.05rem', color: 'var(--color-text-primary)' }}>{formatPrice(total)}</strong>
                 <span style={{ marginLeft: '8px', fontSize: '0.75rem', color: '#10B981', fontWeight: 650 }}>FREE Postal Delivery</span>
               </div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Secure Razorpay UPI & Cards</span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Secure Razorpay UPI &amp; Cards</span>
             </div>
             <div className={styles.formActions}>
               <button type="button" onClick={handleAddressContinue} className={`btn btn-primary btn-lg ${styles.continueBtn}`}>
@@ -778,7 +814,7 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        {/* Step 2: Review */}
+        {/* Step 2: Review + Editing */}
         {step === 1 && (
           <div style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className={`card ${styles.card}`} style={{ marginBottom: '24px' }}>
@@ -813,29 +849,211 @@ export default function CheckoutPage() {
             </div>
 
             <div className={`card ${styles.card}`}>
-              <h2 className={styles.cardTitle}>
-                Order Summary
-              </h2>
+              <div className={styles.cardHeader} style={{ marginBottom: '16px' }}>
+                <h2 className={styles.cardTitle} style={{ margin: 0 }}>
+                  Order Summary
+                </h2>
+                <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                  Edit items below before paying
+                </span>
+              </div>
 
-              {items.map(item => (
-                <div key={item.id} className={styles.reviewItem}>
-                  <img src={item.productImage} alt="" className={styles.reviewItemImg} />
-                  <div className={styles.reviewItemDetails}>
-                    <div className={styles.reviewItemName}>{item.productName}</div>
-                    {(item.bundleTitle || (item.booksIncluded && item.booksIncluded > 1)) && (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 650, marginTop: '2px' }}>
-                        {item.bundleTitle ? item.bundleTitle : ''} {item.booksIncluded && item.booksIncluded > 1 ? `(Includes ${item.booksIncluded} Books)` : ''}
+              {/* ── Editable item list ─────────────────────────────────── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                {items.map(item => {
+                  // Build language options: prefer item.availableLanguages, fallback to current language only
+                  const langOptions: { code: string; name: string }[] = item.availableLanguages && item.availableLanguages.length > 0
+                    ? item.availableLanguages
+                    : [{ code: item.language, name: getLanguageDisplay(item.language) }];
+
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        gap: '14px',
+                        padding: '14px',
+                        background: 'var(--color-bg-page)',
+                        borderRadius: '14px',
+                        border: '1px solid var(--color-border-light)',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      {/* Book image */}
+                      <img
+                        src={item.productImage}
+                        alt={item.productName}
+                        style={{
+                          width: '52px',
+                          height: '68px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '1px solid var(--color-border)',
+                          flexShrink: 0,
+                        }}
+                      />
+
+                      {/* Details + controls */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--color-text-primary)', marginBottom: '2px' }}>
+                          {item.productName}
+                        </div>
+                        {(item.bundleTitle || (item.booksIncluded && item.booksIncluded > 1)) && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 650, marginBottom: '6px' }}>
+                            {item.bundleTitle && <span>{item.bundleTitle}</span>}
+                            {item.booksIncluded && item.booksIncluded > 1 && <span> (Includes {item.booksIncluded} Books)</span>}
+                          </div>
+                        )}
+
+                        {/* Language selector */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                          <label
+                            htmlFor={`lang-${item.id}`}
+                            style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}
+                          >
+                            Medium:
+                          </label>
+                          {langOptions.length > 1 ? (
+                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                              <select
+                                id={`lang-${item.id}`}
+                                value={item.language}
+                                onChange={e => updateLanguage(item.id, e.target.value)}
+                                style={{
+                                  appearance: 'none',
+                                  WebkitAppearance: 'none',
+                                  padding: '4px 28px 4px 10px',
+                                  borderRadius: '8px',
+                                  border: '1.5px solid var(--color-border)',
+                                  background: 'var(--color-bg-card)',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  color: 'var(--color-text-primary)',
+                                  cursor: 'pointer',
+                                  outline: 'none',
+                                }}
+                                aria-label={`Language for ${item.productName}`}
+                              >
+                                {langOptions.map(l => (
+                                  <option key={l.code} value={l.code}>
+                                    {l.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown
+                                size={13}
+                                style={{
+                                  position: 'absolute',
+                                  right: '8px',
+                                  pointerEvents: 'none',
+                                  color: 'var(--color-text-muted)',
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              color: 'var(--color-text-primary)',
+                              padding: '4px 10px',
+                              background: 'var(--color-bg-card)',
+                              borderRadius: '8px',
+                              border: '1px solid var(--color-border-light)',
+                            }}>
+                              {getLanguageDisplay(item.language)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Quantity controls */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              disabled={item.quantity <= 1}
+                              aria-label="Decrease quantity"
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '8px',
+                                border: '1.5px solid var(--color-border)',
+                                background: item.quantity <= 1 ? 'var(--color-bg-page)' : 'var(--color-bg-card)',
+                                color: item.quantity <= 1 ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
+                                cursor: item.quantity <= 1 ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1.1rem',
+                                fontWeight: 700,
+                                opacity: item.quantity <= 1 ? 0.4 : 1,
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              −
+                            </button>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 700, minWidth: '24px', textAlign: 'center', color: 'var(--color-text-primary)' }}>
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              aria-label="Increase quantity"
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '8px',
+                                border: '1.5px solid var(--color-border)',
+                                background: 'var(--color-bg-card)',
+                                color: 'var(--color-text-primary)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '1.1rem',
+                                fontWeight: 700,
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Price + remove */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>
+                              {formatPrice(item.price * item.quantity)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                removeItem(item.id);
+                                toast.info(`${item.productName} removed from order`);
+                              }}
+                              aria-label={`Remove ${item.productName}`}
+                              title="Remove item"
+                              style={{
+                                padding: '5px 7px',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(239,68,68,0.25)',
+                                background: 'rgba(239,68,68,0.06)',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                transition: 'all 0.15s',
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                    <div className={styles.reviewItemMeta}>
-                      Medium: {getLanguageDisplay(item.language)} · Qty: {item.quantity} {item.quantity > 1 && item.booksIncluded && item.booksIncluded > 1 ? `(${item.booksIncluded * item.quantity} books total)` : ''}
                     </div>
-                  </div>
-                  <div className={styles.reviewItemPrice}>
-                    {formatPrice(item.price * item.quantity)}
-                  </div>
-                </div>
-              ))}
+                  );
+                })}
+              </div>
+              {/* ── End editable item list ─────────────────────────────── */}
 
               <div className={styles.summaryList}>
                 <div className={styles.summaryRow}>

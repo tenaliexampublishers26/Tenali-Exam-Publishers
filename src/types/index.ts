@@ -42,6 +42,8 @@ export interface CartItem {
   productImage: string;
   price: number;
   language: LanguageCode | string;
+  /** All languages this product is available in, stored so checkout can render a language selector. */
+  availableLanguages?: ProductLanguage[];
   quantity: number;
   badge?: string;
   bundleTitle?: string;
