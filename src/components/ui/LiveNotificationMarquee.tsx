@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './LiveNotificationMarquee.module.css';
 
+const CACHE_KEY = 'tenali_live_notification';
+
 interface NotificationSettings {
   enabled: boolean;
   text: string;
@@ -15,13 +17,31 @@ interface NotificationSettings {
 
 interface LiveNotificationMarqueeProps {
   initialSettings?: NotificationSettings;
+  fallbackBanner?: React.ReactNode;
 }
 
-export default function LiveNotificationMarquee({ initialSettings }: LiveNotificationMarqueeProps) {
+export default function LiveNotificationMarquee({ 
+  initialSettings,
+  fallbackBanner 
+}: LiveNotificationMarqueeProps) {
   const [settings, setSettings] = useState<NotificationSettings | null>(initialSettings || null);
   const [loading, setLoading] = useState(!initialSettings);
 
   useEffect(() => {
+    // Attempt fast hydration from cache if no initialSettings provided
+    if (!initialSettings) {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setSettings(parsed);
+          setLoading(false);
+        }
+      } catch (err) {
+        // ignore cache read errors
+      }
+    }
+
     let isMounted = true;
     const fetchNotification = async () => {
       try {
@@ -29,14 +49,20 @@ export default function LiveNotificationMarquee({ initialSettings }: LiveNotific
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
-            setSettings({
+            const nextSettings: NotificationSettings = {
               enabled: Boolean(data.enabled),
               text: data.text || '',
               badge: data.badge || 'LIVE UPDATE',
               link: data.link || '#books',
               speed: data.speed || 'normal',
               direction: data.direction || 'left-to-right',
-            });
+            };
+            setSettings(nextSettings);
+            try {
+              localStorage.setItem(CACHE_KEY, JSON.stringify(nextSettings));
+            } catch (err) {
+              // ignore cache write errors
+            }
           }
         }
       } catch (err) {
@@ -50,10 +76,16 @@ export default function LiveNotificationMarquee({ initialSettings }: LiveNotific
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialSettings]);
 
-  if (loading || !settings || !settings.enabled || !settings.text.trim()) {
+  const isFlashActive = Boolean(settings && settings.enabled && settings.text && settings.text.trim().length > 0);
+
+  if (loading && !settings) {
     return null;
+  }
+
+  if (!isFlashActive) {
+    return fallbackBanner ? <>{fallbackBanner}</> : null;
   }
 
   // Determine animation duration based on speed

@@ -131,13 +131,14 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Government / Postal Official Theme Top Banner */}
-      <div className={styles.topGovBanner}>
-        <span>Dedicated Departmental Study Materials & Guides for India Post Examinations</span>
-      </div>
-
-      {/* Live Scrolling Notification Marquee Banner */}
-      <LiveNotificationMarquee />
+      {/* Top Banner: Shows Live Flash Update Marquee when set; hides the default header line. Shows default header line when flash update is not set. */}
+      <LiveNotificationMarquee
+        fallbackBanner={
+          <div className={styles.topGovBanner}>
+            <span>Dedicated Departmental Study Materials & Guides for India Post Examinations</span>
+          </div>
+        }
+      />
 
       {/* Hero Section */}
       <section className={styles.hero}>

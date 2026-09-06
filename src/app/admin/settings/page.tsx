@@ -9,7 +9,6 @@ import {
   Loader2, 
   Radio, 
   BellRing, 
-  Bookmark, 
   ExternalLink,
   Sliders,
   Eye,
@@ -29,23 +28,6 @@ interface LiveNotificationState {
   direction: 'left-to-right' | 'right-to-left';
 }
 
-const TEMPLATES = [
-  {
-    badge: 'FLASH UPDATE',
-    text: 'Welcome postal aspirants! Latest 2026 Edition LDCE Guides for MTS, Postman & PA/SA are now available in all mediums.',
-    link: '#books'
-  },
-  {
-    badge: 'FREE DELIVERY',
-    text: 'Free Shipping across all Postal Circles in India on orders of 2 or more LDCE exam guide books!',
-    link: '#books'
-  },
-  {
-    badge: 'NEW SYLLABUS',
-    text: '100% Updated Postal Manual Volume V, VI & VII Notes & Objective Question Banks Ready for 2026 Exams.',
-    link: '/study-materials'
-  }
-];
 
 export default function AdminSettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -126,16 +108,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const applyTemplate = (tmpl: typeof TEMPLATES[0]) => {
-    setNotification(prev => ({
-      ...prev,
-      badge: tmpl.badge,
-      text: tmpl.text,
-      link: tmpl.link
-    }));
-    toast.success('Preset message applied! Click "Save Settings" to publish.');
-  };
-
   if (loading) {
     return (
       <div className="admin-loading flex flex-col items-center justify-center p-16">
@@ -191,10 +163,10 @@ export default function AdminSettingsPage() {
           <div>
             <h3 className="text-lg font-bold text-(--color-text-primary) flex items-center gap-2">
               <Radio className="text-red-500 animate-pulse" size={20} />
-              Hero Live Notification Marquee (Scrolling Ticker)
+              Hero Live Notification Marquee (Flash Updates)
             </h3>
             <p className="text-sm text-(--color-text-secondary) mt-1">
-              Displays a continuous scrolling live notice ticker right after the top headline banner in the user hero section.
+              Configure custom live flash updates and announcements displayed at the top of the hero section. When active, this replaces the default header tagline.
             </p>
           </div>
 
@@ -243,32 +215,6 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
-          {/* Quick Presets */}
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-(--color-text-secondary) uppercase tracking-wider flex items-center gap-1.5">
-              <Bookmark size={14} className="text-amber-500" /> Quick Message Presets
-            </span>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-              {TEMPLATES.map((tmpl, idx) => (
-                <motion.button
-                  key={idx}
-                  type="button"
-                  onClick={() => applyTemplate(tmpl)}
-                  whileTap={{ scale: 0.97 }}
-                  whileHover={{ y: -2 }}
-                  transition={SPRING_PRESS}
-                  className="text-left p-3 rounded-xl border border-(--color-border) bg-(--color-bg-hover) hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors group"
-                >
-                  <span className="inline-block text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">
-                    {tmpl.badge}
-                  </span>
-                  <p className="text-xs text-(--color-text-primary) line-clamp-2 leading-relaxed">
-                    {tmpl.text}
-                  </p>
-                </motion.button>
-              ))}
-            </div>
-          </div>
 
           {/* Configuration Form Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2 border-t border-(--color-border)">
