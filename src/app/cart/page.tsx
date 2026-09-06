@@ -118,25 +118,29 @@ export default function CartPage() {
                       <Link href={`/study-materials/${item.productSlug}`} className={styles.itemTitle}>
                         {item.productName}
                       </Link>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600, marginTop: '2px' }}>
-                        {item.bundleTitle || (item.productId === 'p1' ? '2-Book Preparation Set' : '3-Book Preparation Set')}
-                      </div>
+                      {item.bundleTitle && (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600, marginTop: '2px' }}>
+                          {item.bundleTitle}
+                        </div>
+                      )}
                     </div>
                     <div className={styles.itemPrice}>
                       {formatPrice(item.price * item.quantity)}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '2px' }}>
-                    <span style={{ fontSize: '0.78rem', background: 'var(--color-bg-page)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--color-border)', fontWeight: 600 }}>
-                      Includes: {item.booksIncluded || (item.productId === 'p1' ? 2 : 3)} Books
-                    </span>
-                    {item.quantity > 1 && (
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                        ({(item.booksIncluded || (item.productId === 'p1' ? 2 : 3)) * item.quantity} physical books total)
+                  {item.booksIncluded && item.booksIncluded > 1 ? (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '2px' }}>
+                      <span style={{ fontSize: '0.78rem', background: 'var(--color-bg-page)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--color-border)', fontWeight: 600 }}>
+                        Includes: {item.booksIncluded} Books
                       </span>
-                    )}
-                  </div>
+                      {item.quantity > 1 && (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          ({item.booksIncluded * item.quantity} physical books total)
+                        </span>
+                      )}
+                    </div>
+                  ) : null}
 
                   {item.badge && (
                     <span className={`badge badge-blue ${styles.itemBadge}`}>{item.badge}</span>

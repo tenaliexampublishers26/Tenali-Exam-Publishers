@@ -81,7 +81,7 @@ function ProductCard({ product }: ProductCardProps) {
         <div className={styles.highlightsContainer}>
           <div className={styles.highlightItem}>
             <BookOpen size={13} className={styles.highlightIcon} />
-            <span>Includes {product.booksIncluded || 2} Books</span>
+            <span>{product.booksIncluded && product.booksIncluded > 1 ? `Includes ${product.booksIncluded} Books` : 'Single Book Edition'}</span>
           </div>
           <div className={styles.highlightItem}>
             <Globe size={13} className={styles.highlightIcon} />

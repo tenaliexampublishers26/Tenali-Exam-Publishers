@@ -636,11 +636,13 @@ export default function CheckoutPage() {
                   <img src={item.productImage} alt="" className={styles.reviewItemImg} />
                   <div className={styles.reviewItemDetails}>
                     <div className={styles.reviewItemName}>{item.productName}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 650, marginTop: '2px' }}>
-                      {item.bundleTitle || (item.productId === 'p1' ? '2-Book Preparation Set' : '3-Book Preparation Set')} (Includes {item.booksIncluded || (item.productId === 'p1' ? 2 : 3)} Books)
-                    </div>
+                    {(item.bundleTitle || (item.booksIncluded && item.booksIncluded > 1)) && (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--color-primary)', fontWeight: 650, marginTop: '2px' }}>
+                        {item.bundleTitle ? item.bundleTitle : ''} {item.booksIncluded && item.booksIncluded > 1 ? `(Includes ${item.booksIncluded} Books)` : ''}
+                      </div>
+                    )}
                     <div className={styles.reviewItemMeta}>
-                      Medium: {getLanguageDisplay(item.language)} · Qty: {item.quantity} {item.quantity > 1 && `(${(item.booksIncluded || (item.productId === 'p1' ? 2 : 3)) * item.quantity} books total)`}
+                      Medium: {getLanguageDisplay(item.language)} · Qty: {item.quantity} {item.quantity > 1 && item.booksIncluded && item.booksIncluded > 1 ? `(${item.booksIncluded * item.quantity} books total)` : ''}
                     </div>
                   </div>
                   <div className={styles.reviewItemPrice}>

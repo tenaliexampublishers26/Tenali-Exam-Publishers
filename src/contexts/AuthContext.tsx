@@ -287,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem('tenali_user');
+    localStorage.removeItem('tep_cart');
     syncedUserIds.clear();
   }, []);
 

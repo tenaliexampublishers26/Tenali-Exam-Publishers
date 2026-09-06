@@ -123,7 +123,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
           {/* Persistent Modern Shopping Bag Cart Icon with Badge */}
           <Link href="/cart" className={styles.cartBtn} aria-label={`Shopping Cart with ${totalItems} items`}>
             <ShoppingBag size={21} strokeWidth={2} className={styles.cartSvg} />
-            <span className={styles.cartBadge}>{totalItems}</span>
+            {totalItems > 0 && <span className={styles.cartBadge}>{totalItems}</span>}
           </Link>
 
           {/* Admin Shield Logo Link if Admin */}
@@ -197,7 +197,7 @@ export default function Navbar({ onSearchOpen }: NavbarProps) {
         <div className={styles.mobileRightControls}>
           <Link href="/cart" className={styles.mobileCartBtn} aria-label={`Shopping Cart with ${totalItems} items`}>
             <ShoppingBag size={22} strokeWidth={2} />
-            <span className={styles.cartBadge}>{totalItems}</span>
+            {totalItems > 0 && <span className={styles.cartBadge}>{totalItems}</span>}
           </Link>
 
           <button

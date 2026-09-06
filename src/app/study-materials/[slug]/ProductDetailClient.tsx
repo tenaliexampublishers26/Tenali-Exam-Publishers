@@ -34,6 +34,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
   const [quantity, setQuantity] = useState(1);
   const [langError, setLangError] = useState(false);
   const [addedSuccess, setAddedSuccess] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
   const galleryRef = useRef<HTMLDivElement | null>(null);
@@ -142,6 +143,7 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
   const isLowStock = !isOutOfStock && selectedStock > 0 && selectedStock <= 5;
 
   const handleAddToCart = () => {
+    if (isAdding) return;
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -155,13 +157,19 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
       toast.error(`Only ${selectedStock} left in stock. Please reduce the quantity.`);
       return;
     }
+    setIsAdding(true);
     setLangError(false);
-    addItem(product, selectedLang, quantity);
+    const langToUse = selectedLang || (productLangs.length > 0 ? '' : 'en');
+    addItem(product, langToUse, quantity);
     setAddedSuccess(true);
-    setTimeout(() => setAddedSuccess(false), 2500);
+    setTimeout(() => {
+      setAddedSuccess(false);
+      setIsAdding(false);
+    }, 1200);
   };
 
   const handleBuyNow = () => {
+    if (isAdding) return;
     if (productLangs.length > 0 && !selectedLang) {
       setLangError(true);
       mediumSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -175,8 +183,10 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
       toast.error(`Only ${selectedStock} left in stock. Please reduce the quantity.`);
       return;
     }
+    setIsAdding(true);
     setLangError(false);
-    addItem(product, selectedLang, quantity);
+    const langToUse = selectedLang || (productLangs.length > 0 ? '' : 'en');
+    addItem(product, langToUse, quantity);
     router.push('/checkout');
   };
 
@@ -444,21 +454,21 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
             <div className={styles.actionRow}>
               <button
                 onClick={handleAddToCart}
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || isAdding}
                 className={`btn btn-primary btn-lg ${styles.actionBtn}`}
                 style={{
-                  opacity: isOutOfStock ? 0.5 : 1,
-                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                  opacity: (isOutOfStock || isAdding) ? 0.6 : 1,
+                  cursor: (isOutOfStock || isAdding) ? 'not-allowed' : 'pointer',
                   ...(addedSuccess ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' } : {})
                 }}
               >
-                {isOutOfStock ? 'Out of Stock' : addedSuccess ? '✓ Added to Cart!' : 'Add to Cart'}
+                {isOutOfStock ? 'Out of Stock' : addedSuccess ? '✓ Added to Cart!' : isAdding ? 'Adding...' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleBuyNow}
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || isAdding}
                 className={`btn btn-accent btn-lg ${styles.actionBtn}`}
-                style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                style={{ opacity: (isOutOfStock || isAdding) ? 0.6 : 1, cursor: (isOutOfStock || isAdding) ? 'not-allowed' : 'pointer' }}
               >
                 {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
               </button>
@@ -532,21 +542,21 @@ export default function ProductDetailClient({ initialProduct, slug }: ProductDet
         <div className={styles.stickyActions}>
           <button
             onClick={handleAddToCart}
-            disabled={isOutOfStock}
+            disabled={isOutOfStock || isAdding}
             className={`btn btn-secondary ${styles.stickyCartBtn}`}
             style={{
-              opacity: isOutOfStock ? 0.5 : 1,
-              cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+              opacity: (isOutOfStock || isAdding) ? 0.6 : 1,
+              cursor: (isOutOfStock || isAdding) ? 'not-allowed' : 'pointer',
               ...(addedSuccess ? { background: '#10b981', borderColor: '#10b981', color: '#ffffff' } : {})
             }}
           >
-            {isOutOfStock ? 'Unavailable' : addedSuccess ? '✓ Added' : 'Add to Cart'}
+            {isOutOfStock ? 'Unavailable' : addedSuccess ? '✓ Added' : isAdding ? 'Adding...' : 'Add to Cart'}
           </button>
           <button
             onClick={handleBuyNow}
-            disabled={isOutOfStock}
+            disabled={isOutOfStock || isAdding}
             className={`btn btn-accent ${styles.stickyBuyBtn}`}
-            style={{ opacity: isOutOfStock ? 0.5 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+            style={{ opacity: (isOutOfStock || isAdding) ? 0.6 : 1, cursor: (isOutOfStock || isAdding) ? 'not-allowed' : 'pointer' }}
           >
             {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
           </button>
