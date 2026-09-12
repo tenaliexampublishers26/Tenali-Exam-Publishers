@@ -222,9 +222,20 @@ export default function PostalSlipCard({ orderNumber, deliveryAddress: rawAddr }
             </div>
           </div>
 
-          {/* Main Body: TO (Consignee) Section */}
-          <div className="my-1.5 flex justify-between items-start gap-4">
-            <div className="flex-1 space-y-1">
+          {/* Main Body: TO (Consignee) Section on the RIGHT, Destination PIN on the LEFT */}
+          <div className="my-1.5 flex items-start justify-between gap-4">
+            {/* Destination PIN Code Box - on the Left */}
+            <div className="border-2 border-black bg-amber-50 p-2 text-center rounded-xs shrink-0 shadow-xs min-w-36">
+              <div className="text-[9px] font-black text-slate-700 uppercase tracking-wider">
+                DESTINATION PIN
+              </div>
+              <div className="text-xl font-black text-black tracking-widest font-mono mt-0.5 border-t border-black/20 pt-0.5">
+                {addr.pinCode || '------'}
+              </div>
+            </div>
+
+            {/* TO (Consignee) Address Block - on the Right */}
+            <div className="flex-1 space-y-1 pl-4">
               <div className="flex items-center gap-2">
                 <span className="bg-black text-white text-[11px] font-black px-2 py-0.5 rounded-xs uppercase tracking-wider">
                   TO:
@@ -245,16 +256,6 @@ export default function PostalSlipCard({ orderNumber, deliveryAddress: rawAddr }
                     </span>
                   </div>
                 )}
-              </div>
-            </div>
-
-            {/* Destination PIN Code Box */}
-            <div className="border-2 border-black bg-amber-50 p-2 text-center rounded-xs shrink-0 shadow-xs min-w-32">
-              <div className="text-[9px] font-black text-slate-700 uppercase tracking-wider">
-                DESTINATION PIN
-              </div>
-              <div className="text-xl font-black text-black tracking-widest font-mono mt-0.5 border-t border-black/20 pt-0.5">
-                {addr.pinCode || '------'}
               </div>
             </div>
           </div>
