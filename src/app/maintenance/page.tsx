@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import MaintenanceClientCheck from '@/components/ui/MaintenanceClientCheck';
 
 export const metadata: Metadata = {
   title: 'Maintenance Mode | Tenali Exam Publisher',
@@ -12,6 +13,7 @@ export default function MaintenancePage() {
         
         {/* App Logo */}
         <div className="mb-6 relative w-24 h-24 sm:w-32 sm:h-32 drop-shadow-md">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/icon.png" alt="Tenali Exam Publisher" className="w-full h-full object-contain" />
         </div>
         
@@ -22,6 +24,8 @@ export default function MaintenancePage() {
         <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed font-medium">
           Currently the application is on maintenance mode please try again later
         </p>
+
+        <MaintenanceClientCheck />
       </div>
     </div>
   );

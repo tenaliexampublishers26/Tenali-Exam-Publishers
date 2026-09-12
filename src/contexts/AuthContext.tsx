@@ -112,6 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parsed && parsed.id) {
           setUser(parsed);
           setIsLoading(false);
+          if (parsed.role === 'admin') {
+            document.cookie = 'tep_user_role=admin; path=/; max-age=2592000; SameSite=Lax';
+          }
         }
       } catch {
         localStorage.removeItem('tenali_user');
@@ -206,6 +209,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback((userData: User) => {
     setUser(userData);
     localStorage.setItem('tenali_user', JSON.stringify(userData));
+    if (typeof document !== 'undefined') {
+      if (userData.role === 'admin') {
+        document.cookie = 'tep_user_role=admin; path=/; max-age=2592000; SameSite=Lax';
+      } else {
+        document.cookie = 'tep_user_role=customer; path=/; max-age=2592000; SameSite=Lax';
+      }
+    }
   }, []);
 
   const loginWithEmail = useCallback(async (email: string, password: string): Promise<{ error?: string }> => {
@@ -305,6 +315,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('tenali_user');
     localStorage.removeItem('tep_cart');
     syncedUserIds.clear();
+    if (typeof document !== 'undefined') {
+      document.cookie = 'tep_user_role=; path=/; max-age=0; SameSite=Lax';
+    }
   }, []);
 
   // ─── Memoized context values ───────────────────────────────────────────────
