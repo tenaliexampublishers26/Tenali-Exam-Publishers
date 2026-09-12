@@ -118,9 +118,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // Maximum 2.5s safety net: never allow isLoading to stay true indefinitely
+    const safetyTimer = setTimeout(() => {
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+    }, 2500);
+
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 2000)
+        );
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
 
         if (session?.user) {
           const optimisticUser: User = {
@@ -183,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted.current = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);

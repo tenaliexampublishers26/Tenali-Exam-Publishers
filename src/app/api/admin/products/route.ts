@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { serverCache } from '@/lib/server-cache';

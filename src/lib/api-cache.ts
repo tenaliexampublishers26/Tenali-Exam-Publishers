@@ -1,6 +1,6 @@
 /**
- * Lightweight In-Memory Cache — Client-Side
- * ──────────────────────────────────────────
+ * Lightweight In-Memory & Session-Backed Cache — Client-Side
+ * ──────────────────────────────────────────────────────────
  * Features:
  *  1. LRU eviction (max 100 entries) — prevents unbounded memory growth
  *  2. In-flight request deduplication — prevents cache stampede
@@ -8,9 +8,12 @@
  *     background-refreshing; users never see a loading state on revisit
  *  4. Subscriber/listener system — components are notified when background
  *     revalidation completes, enabling automatic UI re-renders without polling
+ *  5. SessionStorage fallback — instantly pre-seeds cache on page navigation/re-open
+ *  6. 8-second fetch timeout — prevents hanging requests from stalling the UI
  */
 
 const MAX_ENTRIES = 100;
+const FETCH_TIMEOUT_MS = 8000;
 
 const cache = new Map<string, { data: any; timestamp: number }>();
 
@@ -19,6 +22,28 @@ const inFlight = new Map<string, Promise<any>>();
 
 // Subscriber registry: url → Set of callbacks
 const subscribers = new Map<string, Set<(data: any) => void>>();
+
+/** Helper to read from sessionStorage */
+function getStorage(key: string): { data: any; timestamp: number } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(`tep_cache_${key}`);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // Ignore storage errors
+  }
+  return null;
+}
+
+/** Helper to write to sessionStorage */
+function setStorage(key: string, value: { data: any; timestamp: number }) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(`tep_cache_${key}`, JSON.stringify(value));
+  } catch {
+    // Ignore quota errors
+  }
+}
 
 /** Evict the oldest entry if at capacity (LRU via Map insertion order) */
 function evictIfNeeded() {
@@ -32,7 +57,6 @@ function evictIfNeeded() {
 function notifySubscribers(url: string, data: any) {
   const subs = subscribers.get(url);
   if (subs && subs.size > 0) {
-    // Schedule microtask to avoid calling setState inside fetch .then()
     queueMicrotask(() => {
       subs.forEach((cb) => {
         try {
@@ -42,6 +66,20 @@ function notifySubscribers(url: string, data: any) {
         }
       });
     });
+  }
+}
+
+/**
+ * Fetch with an explicit timeout to prevent 3-5 minute network hangs.
+ */
+async function fetchWithTimeout(url: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -76,7 +114,17 @@ export async function fetchWithCache<T = any>(
   options?: { ttl?: number; forceRefresh?: boolean }
 ): Promise<T> {
   const { ttl = 30000, forceRefresh = false } = options || {};
-  const cached = cache.get(url);
+  
+  // Try memory cache first, then session storage
+  let cached = cache.get(url);
+  if (!cached) {
+    const stored = getStorage(url);
+    if (stored) {
+      cache.set(url, stored);
+      cached = stored;
+    }
+  }
+
   const now = Date.now();
 
   // ── Stale-while-revalidate ────────────────────────────────────────────────
@@ -88,17 +136,19 @@ export async function fetchWithCache<T = any>(
       return cached.data as T;
     }
 
-    // Stale — serve immediately, refresh in background
+    // Stale — serve immediately, refresh in background with timeout
     if (!inFlight.has(url)) {
-      const refreshPromise = fetch(url)
+      const refreshPromise = fetchWithTimeout(url)
         .then((res) => (res.ok ? res.json() : Promise.reject(res.statusText)))
         .then((data) => {
           evictIfNeeded();
-          cache.set(url, { data, timestamp: Date.now() });
+          const entry = { data, timestamp: Date.now() };
+          cache.set(url, entry);
+          setStorage(url, entry);
           notifySubscribers(url, data);
           return data;
         })
-        .catch(() => cached.data) // On error, keep serving stale
+        .catch(() => cached?.data) // On error/timeout, keep serving stale
         .finally(() => inFlight.delete(url));
 
       inFlight.set(url, refreshPromise);
@@ -108,25 +158,28 @@ export async function fetchWithCache<T = any>(
   }
 
   // ── In-flight deduplication ───────────────────────────────────────────────
-  // If another component already started the same fetch, wait for it instead
-  // of issuing a duplicate network request.
   if (inFlight.has(url)) {
     return inFlight.get(url) as Promise<T>;
   }
 
-  // ── Fresh fetch ───────────────────────────────────────────────────────────
-  const fetchPromise = fetch(url)
+  // ── Fresh fetch (with strict 8s timeout) ──────────────────────────────────
+  const fetchPromise = fetchWithTimeout(url)
     .then(async (res) => {
       if (!res.ok) {
-        // On error, serve stale if available
         if (cached) return cached.data as T;
         throw new Error(`Failed to fetch ${url}: ${res.statusText}`);
       }
       const data = await res.json();
       evictIfNeeded();
-      cache.set(url, { data, timestamp: Date.now() });
+      const entry = { data, timestamp: Date.now() };
+      cache.set(url, entry);
+      setStorage(url, entry);
       notifySubscribers(url, data);
       return data as T;
+    })
+    .catch((err) => {
+      if (cached) return cached.data as T;
+      throw err;
     })
     .finally(() => inFlight.delete(url));
 
@@ -136,23 +189,46 @@ export async function fetchWithCache<T = any>(
 
 export function getCachedData<T = any>(url: string): T | null {
   const cached = cache.get(url);
-  return cached ? (cached.data as T) : null;
+  if (cached) return cached.data as T;
+  const stored = getStorage(url);
+  if (stored) {
+    cache.set(url, stored);
+    return stored.data as T;
+  }
+  return null;
 }
 
 export function getCacheTimestamp(url: string): number | null {
   const cached = cache.get(url);
-  return cached ? cached.timestamp : null;
+  if (cached) return cached.timestamp;
+  const stored = getStorage(url);
+  if (stored) {
+    cache.set(url, stored);
+    return stored.timestamp;
+  }
+  return null;
 }
 
 export function invalidateCache(urlPrefix?: string) {
   if (!urlPrefix) {
     cache.clear();
     inFlight.clear();
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(sessionStorage).forEach((k) => {
+          if (k.startsWith('tep_cache_')) sessionStorage.removeItem(k);
+        });
+      } catch {}
+    }
     return;
   }
   for (const key of Array.from(cache.keys())) {
     if (key.startsWith(urlPrefix)) {
       cache.delete(key);
+      if (typeof window !== 'undefined') {
+        try { sessionStorage.removeItem(`tep_cache_${key}`); } catch {}
+      }
     }
   }
 }
+

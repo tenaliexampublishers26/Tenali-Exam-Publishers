@@ -46,7 +46,7 @@ export default function AdminUsersPage() {
     return true;
   });
 
-  if (loading) {
+  if (loading && users.length === 0) {
     return (
       <div className="admin-loading">
         <div className="admin-loading__spinner" />

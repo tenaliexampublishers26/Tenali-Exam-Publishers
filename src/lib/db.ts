@@ -29,9 +29,10 @@ function getDb() {
     globalForDb.sql = postgres(databaseUrl, {
       ssl: 'require',
       prepare: false,      // MUST be false for Supabase transaction pooler (PgBouncer)
-      max: isServerless ? 5 : 20,  // Lower per-instance pool in serverless; higher in traditional server
-      idle_timeout: 20,    // Reduced: release idle connections faster to avoid pool exhaustion
-      connect_timeout: 10, // 10s connect timeout
+      max: isServerless ? 10 : 20, // 10 connections per lambda ensures concurrent queries don't deadlock
+      idle_timeout: 10,    // Release idle connections fast (10s) to keep pool clean
+      connect_timeout: 8,  // 8s connection timeout — never hang indefinitely
+      timeout: 10,         // CRITICAL FIX: 10s query timeout prevents the 3-5 minute socket stall!
       max_lifetime: 1800,  // Recycle connections every 30 min to prevent stale connections
       // Retry on transient connection errors
       connection: {

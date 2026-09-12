@@ -46,7 +46,18 @@ export default function AdminDashboardPage() {
     normalize: (raw) => raw.data,
   });
 
-  const data = analyticsRaw;
+  const defaultAnalytics = {
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalUsers: 0,
+    lowStockProducts: 0,
+    totalProducts: 0,
+    recentOrders: [],
+    topProducts: [],
+    recentActivity: [],
+  };
+
+  const data = analyticsRaw || defaultAnalytics;
 
   // ── Revenue Intelligence states ────────────────────────────────────────────
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
@@ -84,7 +95,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Only re-fetch revenue when the actual key changes (stable comparison)
+  // Only re-fetch revenue when the actual key changes (runs on mount and on key change)
   useEffect(() => {
     if (revenueKey === prevRevenueKey.current) return;
     prevRevenueKey.current = revenueKey;
@@ -92,12 +103,6 @@ export default function AdminDashboardPage() {
     fetchRevenueAnalytics();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revenueKey]);
-
-  // Initial revenue fetch
-  useEffect(() => {
-    fetchRevenueAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const formatActivityTime = (timeString: string) => {
     try {
@@ -189,7 +194,7 @@ export default function AdminDashboardPage() {
     return new Date().toLocaleDateString('en-US', options);
   };
 
-  if (loading) {
+  if (loading && !analyticsRaw) {
     return (
       <div className="space-y-10 animate-pulse">
         {/* Banner Skeleton */}

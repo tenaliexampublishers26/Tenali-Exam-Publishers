@@ -413,7 +413,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  if (loading) {
+  if (loading && orders.length === 0) {
     return (
       <div className="admin-loading">
         <div className="admin-loading__spinner" />

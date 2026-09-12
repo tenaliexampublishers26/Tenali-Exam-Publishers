@@ -70,12 +70,20 @@ export function useAutoRefresh<T = any>({
   const [lastRefreshed, setLastRefreshed] = useState<number | null>(cachedTs);
   const [countdown, setCountdown] = useState(Math.round(interval / 1000));
   const [enabled, setEnabled] = useState(defaultEnabled);
-
   const effectiveTtl = ttl ?? interval;
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextRefreshAt = useRef<number>(Date.now() + interval);
   const isRefreshingRef = useRef(false);
+
+  // Maximum 4-second loading guard: never stay in full-page skeleton loading forever
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   // ── Core fetch function ────────────────────────────────────────────────────
   const doFetch = useCallback(

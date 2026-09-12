@@ -108,17 +108,29 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
     setMobileOpen(false);
   }, [pathname]);
 
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+
+  // Safety timer: maximum 2s waiting for auth before unblocking layout
   useEffect(() => {
-    if (!isLoading && mounted) {
-      if (!isAuthenticated) {
+    const timer = setTimeout(() => {
+      setAuthTimedOut(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const effectiveLoading = isLoading && !authTimedOut;
+
+  useEffect(() => {
+    if (!effectiveLoading && mounted) {
+      if (!isAuthenticated && !user) {
         router.push('/login?redirect=/admin');
-      } else if (user?.role !== 'admin') {
+      } else if (user && user.role !== 'admin') {
         router.push('/account');
       }
     }
-  }, [isAuthenticated, isLoading, user, router, mounted]);
+  }, [isAuthenticated, effectiveLoading, user, router, mounted]);
 
-  if (!mounted || isLoading) {
+  if (!mounted || effectiveLoading) {
     return (
       <div className="flex h-dvh items-center justify-center bg-(--color-bg-page) text-(--color-text-muted)">
         <div className="flex flex-col items-center gap-3">
