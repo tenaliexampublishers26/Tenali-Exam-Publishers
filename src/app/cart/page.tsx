@@ -42,7 +42,13 @@ export default function CartPage() {
     e.preventDefault();
     if (!isAuthenticated) {
       toast.info('Please log in or create an account to proceed with checkout.');
-      router.push('/login?redirect=/checkout');
+      const dest = '/login?redirect=/checkout';
+      router.push(dest);
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname === '/cart') {
+          window.location.href = dest;
+        }
+      }, 200);
     } else {
       router.push('/checkout');
     }

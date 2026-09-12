@@ -13,7 +13,8 @@ function LoginContent() {
   const { login, loginWithEmail, registerWithEmail, loginWithGoogle } = useAuth();
   const toast = useToast();
   
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const isSignupParam = searchParams.get('mode') === 'signup' || searchParams.get('signup') === 'true';
+  const [isLoginMode, setIsLoginMode] = useState(!isSignupParam);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -95,7 +96,7 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      await loginWithGoogle();
+      await loginWithGoogle(redirectUrl);
     } catch (err: any) {
       toast.error('Google login failed. Please try again.');
       setIsGoogleLoading(false);

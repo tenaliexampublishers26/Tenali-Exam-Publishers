@@ -13,8 +13,8 @@ if (!databaseUrl) {
 const sql = postgres(databaseUrl, { ssl: 'require' });
 
 async function resetPassword() {
-  const email = 'rayudusaikiran02@gmail.com';
-  const newPassword = 'AdminTenali2026!';
+  const email = 'tenaliexampublishers26@gmail.com';
+  const newPassword = 'Admin@Tenali2026!';
 
   console.log(`🔄 Generating hash for password...`);
   const salt = await bcrypt.genSalt(10);

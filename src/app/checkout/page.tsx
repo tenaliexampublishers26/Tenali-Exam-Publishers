@@ -167,15 +167,25 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
+  const hasRedirectedRef = useRef(false);
+
   // Auth Protection Gate: Redirect if not logged in
   // NOTE: Do NOT redirect if payment is in progress (loading=true) or step>0
   // because auth tokens may briefly flicker on production causing a false sign-out
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !loading && stepRef.current === 0) {
+    if (!isLoading && !isAuthenticated && !loading && stepRef.current === 0 && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
       toast.info('Please sign in to proceed with checkout');
-      router.push('/login?redirect=/checkout');
+      const dest = '/login?redirect=/checkout';
+      router.push(dest);
+      const timer = setTimeout(() => {
+        if (typeof window !== 'undefined' && window.location.pathname === '/checkout' && !isAuthenticated) {
+          window.location.href = dest;
+        }
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, isLoading, loading, router, toast]);
+  }, [isAuthenticated, isLoading, loading, router]);
 
   if (isLoading) {
     return (
@@ -353,20 +363,57 @@ export default function CheckoutPage() {
   }
 
   if (!isAuthenticated) {
+    const handleAuthRedirect = (e: React.MouseEvent<HTMLAnchorElement>, signup = false) => {
+      e.preventDefault();
+      const dest = signup ? '/login?redirect=/checkout&mode=signup' : '/login?redirect=/checkout';
+      window.location.href = dest;
+    };
+
     return (
-      <div style={{ textAlign: 'center', padding: '100px 20px', maxWidth: '400px', margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', padding: '80px 20px', maxWidth: '440px', margin: '0 auto' }}>
         <div style={{ display: 'inline-flex', padding: '24px', background: 'var(--color-bg-page)', borderRadius: '50%', marginBottom: '24px', color: 'var(--color-primary)' }}>
           <Lock size={48} strokeWidth={1.5} />
         </div>
-        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', marginBottom: '8px' }}>
+        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', fontWeight: 800, marginBottom: '10px', color: '#0f172a' }}>
           Authentication Required
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', marginBottom: '24px' }}>
-          Please log in or create an account to proceed with your order.
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '28px', lineHeight: 1.5, fontSize: '0.95rem' }}>
+          Please sign in or create an account to proceed with your order and track shipping.
         </p>
-        <Link href="/login?redirect=/checkout" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
-          Sign In to Continue Checkout
-        </Link>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <Link
+            href="/login?redirect=/checkout"
+            onClick={(e) => handleAuthRedirect(e, false)}
+            className="btn btn-primary btn-lg"
+            style={{ width: '100%', justifyContent: 'center', cursor: 'pointer', padding: '14px', fontSize: '1rem', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+          >
+            Sign In to Continue Checkout
+          </Link>
+          <Link
+            href="/login?redirect=/checkout&mode=signup"
+            onClick={(e) => handleAuthRedirect(e, true)}
+            className="btn btn-secondary btn-lg"
+            style={{ width: '100%', justifyContent: 'center', cursor: 'pointer', padding: '14px', fontSize: '1rem', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+          >
+            Create New Account
+          </Link>
+          <Link
+            href="/study-materials"
+            style={{
+              marginTop: '12px',
+              fontSize: '0.9rem',
+              color: 'var(--color-text-muted)',
+              textDecoration: 'none',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <ArrowLeft size={16} /> Return to Study Materials
+          </Link>
+        </div>
       </div>
     );
   }

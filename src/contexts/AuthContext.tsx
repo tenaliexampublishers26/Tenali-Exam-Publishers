@@ -29,7 +29,7 @@ interface AuthActionsType {
   login: (userData: User) => void;
   loginWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
   registerWithEmail: (email: string, password: string, name?: string, phone?: string) => Promise<{ error?: string }>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (redirectDestination?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -297,11 +297,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [login]);
 
-  const loginWithGoogle = useCallback(async () => {
+  const loginWithGoogle = useCallback(async (redirectDestination?: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const nextParam = redirectDestination ? `?next=${encodeURIComponent(redirectDestination)}` : '';
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${origin}/auth/callback` },
+      options: { redirectTo: `${origin}/auth/callback${nextParam}` },
     });
     if (error) {
       console.error('Google login error:', error);
