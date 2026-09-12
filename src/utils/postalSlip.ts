@@ -104,55 +104,55 @@ export async function downloadPostalSlipPDF(data: PostalSlipData, elementId?: st
     pdf.setTextColor(185, 28, 28);
     pdf.text('INDIA POST BNPL', 162, 18, { align: 'center' });
 
-    // TO Section
-    pdf.setDrawColor(0, 0, 0);
-    pdf.setFillColor(0, 0, 0);
-    pdf.rect(7, 28, 12, 6, 'F');
-    pdf.setFontSize(9);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text('TO:', 13, 32.5, { align: 'center' });
-
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text((addr.fullName || '').toUpperCase(), 22, 33);
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(10);
-    let y = 39;
-    pdf.text(`${addr.houseOrFlat || ''}, ${addr.street || ''}`, 22, y);
-    y += 5;
-
-    if (addr.area) {
-      pdf.text(addr.area, 22, y);
-      y += 5;
-    }
-
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(`${addr.city || ''}, ${addr.state || ''}`, 22, y);
-    y += 6;
-
-    pdf.setFontSize(10);
-    pdf.text(`CELL: ${addr.mobile || ''}`, 22, y);
-
-    // Destination PIN Box
+    // Destination PIN Box (on Left)
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.6);
     pdf.setFillColor(254, 243, 199);
-    pdf.rect(142, 28, 40, 22, 'FD');
+    pdf.rect(7, 28, 40, 22, 'FD');
 
     pdf.setFontSize(8);
     pdf.setTextColor(50, 50, 50);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('DESTINATION PIN', 162, 33, { align: 'center' });
+    pdf.text('DESTINATION PIN', 27, 33, { align: 'center' });
 
     pdf.setLineWidth(0.3);
-    pdf.line(144, 35, 180, 35);
+    pdf.line(9, 35, 45, 35);
 
     pdf.setFontSize(14);
     pdf.setTextColor(0, 0, 0);
     pdf.setFont('courier', 'bold');
-    pdf.text(addr.pinCode || '', 162, 44, { align: 'center' });
+    pdf.text(addr.pinCode || '', 27, 44, { align: 'center' });
+
+    // TO Section (on Right)
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setFillColor(0, 0, 0);
+    pdf.rect(54, 28, 12, 6, 'F');
+    pdf.setFontSize(9);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('TO:', 60, 32.5, { align: 'center' });
+
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text((addr.fullName || '').toUpperCase(), 69, 33);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    let y = 39;
+    pdf.text(`${addr.houseOrFlat || ''}, ${addr.street || ''}`, 69, y);
+    y += 5;
+
+    if (addr.area) {
+      pdf.text(addr.area, 69, y);
+      y += 5;
+    }
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`${addr.city || ''}, ${addr.state || ''}`, 69, y);
+    y += 6;
+
+    pdf.setFontSize(10);
+    pdf.text(`CELL: ${addr.mobile || ''}`, 69, y);
 
     // Footer Line
     pdf.setLineWidth(0.5);
@@ -398,7 +398,12 @@ export function printPostalSlipWindow(data: PostalSlipData) {
           </div>
 
           <div class="to-body">
-            <div>
+            <div class="pin-box">
+              <div class="pin-title">DESTINATION PIN</div>
+              <div class="pin-number">${addr.pinCode || '------'}</div>
+            </div>
+
+            <div style="flex: 1; padding-left: 24px;">
               <div>
                 <span class="to-badge">TO:</span>
                 <span class="to-name">${addr.fullName || 'CUSTOMER'}</span>
@@ -409,11 +414,6 @@ export function printPostalSlipWindow(data: PostalSlipData) {
                 <div style="font-weight: 800;">${[addr.city, addr.state].filter(Boolean).join(', ')}</div>
                 ${addr.mobile ? `<div><span class="phone-chip">CELL: ${addr.mobile}</span></div>` : ''}
               </div>
-            </div>
-
-            <div class="pin-box">
-              <div class="pin-title">DESTINATION PIN</div>
-              <div class="pin-number">${addr.pinCode || '------'}</div>
             </div>
           </div>
 

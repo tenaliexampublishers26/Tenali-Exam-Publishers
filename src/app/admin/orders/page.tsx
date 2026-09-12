@@ -257,7 +257,8 @@ export default function AdminOrdersPage() {
             }
             .to-section {
               margin-bottom: 40px;
-              padding-left: 20px;
+              margin-left: auto;
+              width: 55%;
               font-size: 15px;
               line-height: 1.6;
             }
