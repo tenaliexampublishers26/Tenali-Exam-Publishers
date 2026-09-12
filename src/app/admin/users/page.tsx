@@ -4,34 +4,36 @@ import { motion } from 'motion/react';
 import { Users, Search, RefreshCw, X, Package, Calendar as CalendarIcon, Phone, Mail, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { formatPrice } from '@/lib/utils';
-import { fetchWithCache, getCachedData } from '@/lib/api-cache';
-import { AdminPageHeader, AdminModal, AdminTableRow, SPRING_PRESS } from '@/components/admin/AdminUI';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { AdminPageHeader, AdminModal, AdminTableRow, SPRING_PRESS, AdminAutoRefreshBadge, AdminLastRefreshed } from '@/components/admin/AdminUI';
 
 export default function AdminUsersPage() {
-  const cachedInitial = getCachedData('/api/admin/users');
-  const [users, setUsers] = useState<any[]>(cachedInitial ? cachedInitial.users || [] : []);
-  const [loading, setLoading] = useState(!cachedInitial);
-  const [refreshing, setRefreshing] = useState(false);
+  // ── Auto-refresh users every 60 seconds ───────────────────────────────────────
+  const {
+    data: usersRaw,
+    loading,
+    isRefreshing,
+    lastRefreshed,
+    countdown,
+    enabled: autoRefreshEnabled,
+    setEnabled: setAutoRefreshEnabled,
+    manualRefresh,
+  } = useAutoRefresh({
+    url: '/api/admin/users',
+    interval: 60_000,
+    ttl: 50_000,
+    normalize: (raw) => raw.users || [],
+  });
+
+  const [users, setUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (usersRaw) setUsers(usersRaw);
+  }, [usersRaw]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const toast = useToast();
-
-  const fetchUsers = async (force = false) => {
-    try {
-      const data = await fetchWithCache('/api/admin/users', { ttl: 20000, forceRefresh: force });
-      setUsers(data.users || []);
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to load users');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const filteredUsers = users.filter(u => {
     if (searchTerm) {
@@ -85,14 +87,16 @@ export default function AdminUsersPage() {
               )}
             </div>
 
-            <motion.button
-              onClick={() => { setRefreshing(true); fetchUsers(true); }}
-              whileTap={{ scale: 0.94 }}
-              transition={SPRING_PRESS}
-              className="btn btn-ghost btn-sm shrink-0"
-            >
-              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} /> Refresh
-            </motion.button>
+            <div className="flex items-center gap-2 shrink-0">
+              <AdminAutoRefreshBadge
+                enabled={autoRefreshEnabled}
+                onToggle={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                countdown={countdown}
+                isRefreshing={isRefreshing}
+                onManualRefresh={manualRefresh}
+              />
+              <AdminLastRefreshed timestamp={lastRefreshed} />
+            </div>
           </div>
         }
       />

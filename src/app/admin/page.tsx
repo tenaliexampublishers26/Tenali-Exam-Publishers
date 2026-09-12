@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { 
@@ -23,16 +23,32 @@ import {
 
 import RevenueChart from '@/components/ui/RevenueChart';
 import { fetchWithCache, getCachedData } from '@/lib/api-cache';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { motion } from 'motion/react';
-import { AdminStatCard, AdminSegmentedControl, AdminTableRow } from '@/components/admin/AdminUI';
+import { AdminStatCard, AdminSegmentedControl, AdminTableRow, AdminAutoRefreshBadge, AdminLastRefreshed } from '@/components/admin/AdminUI';
 
 export default function AdminDashboardPage() {
-  const cachedInitial = getCachedData('/api/admin/analytics');
-  const [data, setData] = useState<any>(cachedInitial ? cachedInitial.data : null);
-  const [loading, setLoading] = useState(!cachedInitial);
-  const [error, setError] = useState('');
+  // ── Analytics auto-refresh (30s interval) ─────────────────────────────────
+  const {
+    data: analyticsRaw,
+    loading,
+    error,
+    isRefreshing,
+    lastRefreshed,
+    countdown,
+    enabled: autoRefreshEnabled,
+    setEnabled: setAutoRefreshEnabled,
+    manualRefresh,
+  } = useAutoRefresh({
+    url: '/api/admin/analytics',
+    interval: 30_000,
+    ttl: 20_000,
+    normalize: (raw) => raw.data,
+  });
 
-  // Revenue Intelligence states
+  const data = analyticsRaw;
+
+  // ── Revenue Intelligence states ────────────────────────────────────────────
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [range, setRange] = useState<string>('30days');
   const [customDates, setCustomDates] = useState({ start: '', end: '' });
@@ -40,17 +56,9 @@ export default function AdminDashboardPage() {
   const [revenueLoading, setRevenueLoading] = useState(true);
   const [revenueError, setRevenueError] = useState('');
 
-  const fetchAnalytics = async (force = false) => {
-    try {
-      const json = await fetchWithCache('/api/admin/analytics', { ttl: 20000, forceRefresh: force });
-      setData(json.data);
-      setError('');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Build a stable cache key for revenue (avoids object reference re-renders)
+  const revenueKey = `${period}|${range}|${customDates.start}|${customDates.end}`;
+  const prevRevenueKey = useRef('');
 
   const fetchRevenueAnalytics = async (force = false) => {
     try {
@@ -59,14 +67,15 @@ export default function AdminDashboardPage() {
         url += `&startDate=${customDates.start}&endDate=${customDates.end}`;
       }
       
-      const cached = getCachedData(url);
+      // Pre-seed from cache without causing loading flash
+      const cached = getCachedData<any>(url);
       if (cached && !revenueData) {
-        setRevenueData(cached.data);
+        setRevenueData(cached.data ?? cached);
         setRevenueLoading(false);
       }
 
-      const json = await fetchWithCache(url, { ttl: 20000, forceRefresh: force });
-      setRevenueData(json.data);
+      const json = await fetchWithCache(url, { ttl: 20_000, forceRefresh: force });
+      setRevenueData(json.data ?? json);
       setRevenueError('');
     } catch (err: any) {
       setRevenueError(err.message);
@@ -75,13 +84,20 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Only re-fetch revenue when the actual key changes (stable comparison)
   useEffect(() => {
-    fetchAnalytics();
-  }, []);
+    if (revenueKey === prevRevenueKey.current) return;
+    prevRevenueKey.current = revenueKey;
+    setRevenueLoading(true);
+    fetchRevenueAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revenueKey]);
 
+  // Initial revenue fetch
   useEffect(() => {
     fetchRevenueAnalytics();
-  }, [period, range, customDates]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const formatActivityTime = (timeString: string) => {
     try {
@@ -212,7 +228,7 @@ export default function AdminDashboardPage() {
           <span className="font-semibold">{error}</span>
         </div>
         <button 
-          onClick={() => { setLoading(true); setError(''); fetchAnalytics(); }}
+          onClick={manualRefresh}
           className="btn btn-danger btn-sm shrink-0 flex items-center gap-2"
         >
           <RefreshCw className="size-4" /> Retry Loading
@@ -246,6 +262,17 @@ export default function AdminDashboardPage() {
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-50 max-w-xl leading-relaxed">
               Monitor customer activity, review incoming book order packages, manage product stock levels, and track checkout statistics.
             </p>
+            {/* Auto-refresh status row */}
+            <div className="flex items-center gap-3 mt-3">
+              <AdminAutoRefreshBadge
+                enabled={autoRefreshEnabled}
+                onToggle={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                countdown={countdown}
+                isRefreshing={isRefreshing}
+                onManualRefresh={manualRefresh}
+              />
+              <AdminLastRefreshed timestamp={lastRefreshed} />
+            </div>
           </div>
           
           <div className="shrink-0 flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-gray-300/50 dark:border-slate-700/50 px-5 py-3 rounded-2xl">

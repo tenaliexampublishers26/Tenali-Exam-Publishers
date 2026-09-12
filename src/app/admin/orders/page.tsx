@@ -5,8 +5,8 @@ import { formatPrice } from '@/lib/utils';
 import { ShoppingCart, Package, RefreshCw, Copy, Check, Search, Calendar as CalendarIcon, Eye, X, Filter, Download, Printer, Truck } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import PostalSlipCard from '@/components/admin/PostalSlipCard';
-import { AdminTableRow, AdminModal, SPRING_UI, SPRING_PRESS } from '@/components/admin/AdminUI';
-
+import { AdminTableRow, AdminModal, SPRING_UI, SPRING_PRESS, AdminAutoRefreshBadge, AdminLastRefreshed } from '@/components/admin/AdminUI';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
 
 function parseDeliveryAddress(raw: any) {
@@ -34,12 +34,36 @@ function parseDeliveryAddress(raw: any) {
 }
 
 export default function AdminOrdersPage() {
-  const cachedInitial = getCachedData('/api/admin/orders');
-  const initialOrders = cachedInitial && cachedInitial.orders 
-    ? cachedInitial.orders.map((o: any) => ({ ...o, deliveryAddress: parseDeliveryAddress(o.deliveryAddress) }))
-    : [];
-  const [orders, setOrders] = useState<any[]>(initialOrders);
-  const [loading, setLoading] = useState(!cachedInitial);
+  // ── Auto-refresh orders every 15 seconds ───────────────────────────────────────
+  const {
+    data: ordersRaw,
+    loading,
+    isRefreshing,
+    lastRefreshed,
+    countdown,
+    enabled: autoRefreshEnabled,
+    setEnabled: setAutoRefreshEnabled,
+    manualRefresh: doAutoRefresh,
+  } = useAutoRefresh({
+    url: '/api/admin/orders',
+    interval: 15_000,
+    ttl: 12_000,
+    normalize: (raw) => {
+      const rawOrders = raw.orders || [];
+      return rawOrders.map((o: any) => ({
+        ...o,
+        deliveryAddress: parseDeliveryAddress(o.deliveryAddress),
+      }));
+    },
+  });
+
+  const [orders, setOrders] = useState<any[]>([]);
+
+  // Sync auto-refresh data into local mutable orders state
+  useEffect(() => {
+    if (ordersRaw) setOrders(ordersRaw);
+  }, [ordersRaw]);
+
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +77,21 @@ export default function AdminOrdersPage() {
   const filterRef = useRef<HTMLDivElement>(null);
   const downloadRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
+
+  const fetchOrders = async (force = false) => {
+    try {
+      const data = await fetchWithCache('/api/admin/orders', { ttl: 12_000, forceRefresh: force });
+      const rawOrders = data.orders || [];
+      const normalizedOrders = rawOrders.map((o: any) => ({
+        ...o,
+        deliveryAddress: parseDeliveryAddress(o.deliveryAddress),
+      }));
+      setOrders(normalizedOrders);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load orders');
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -109,26 +148,6 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const fetchOrders = async (force = false) => {
-    try {
-      const data = await fetchWithCache('/api/admin/orders', { ttl: 15000, forceRefresh: force });
-      const rawOrders = data.orders || [];
-      const normalizedOrders = rawOrders.map((o: any) => ({
-        ...o,
-        deliveryAddress: parseDeliveryAddress(o.deliveryAddress),
-      }));
-      setOrders(normalizedOrders);
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to load orders');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
@@ -507,9 +526,17 @@ export default function AdminOrdersPage() {
             </div>
           )}
 
-          <button onClick={() => { setLoading(true); fetchOrders(); }} className="btn btn-ghost btn-sm shrink-0">
-            <RefreshCw size={16} /> Refresh
-          </button>
+          {/* Auto-refresh badge + last refreshed */}
+          <div className="flex items-center gap-2 shrink-0">
+            <AdminAutoRefreshBadge
+              enabled={autoRefreshEnabled}
+              onToggle={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+              countdown={countdown}
+              isRefreshing={isRefreshing}
+              onManualRefresh={() => fetchOrders(true)}
+            />
+            <AdminLastRefreshed timestamp={lastRefreshed} />
+          </div>
 
           {/* Download CSV Dropdown */}
           <div className="relative ml-auto" ref={downloadRef}>

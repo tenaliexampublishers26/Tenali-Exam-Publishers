@@ -21,6 +21,7 @@ import {
   Menu,
   X,
   Settings,
+  RefreshCw,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -67,12 +68,22 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [liveTime, setLiveTime] = useState('');
 
   // Drag position for the mobile drawer -- drives 1:1 tracking + rubber-band + fling-to-dismiss
   const dragX = useMotionValue(0);
 
   useEffect(() => {
     setMounted(true);
+    // Live clock for header display — updates every minute
+    const updateTime = () => {
+      setLiveTime(
+        new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+      );
+    };
+    updateTime();
+    const clockInterval = setInterval(updateTime, 60_000);
+    return () => clearInterval(clockInterval);
   }, []);
 
   useEffect(() => {
@@ -81,10 +92,17 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
     } else {
       document.documentElement.classList.remove('dark');
     }
+    // BUG FIX: No cleanup here — the dark class should persist across
+    // route changes within admin. It is only stripped when the user
+    // actually leaves the admin layout (handled in the unmount below).
+  }, [isDark]);
+
+  // Only strip dark when admin layout fully unmounts (user navigates away)
+  useEffect(() => {
     return () => {
       document.documentElement.classList.remove('dark');
     };
-  }, [isDark]);
+  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -301,7 +319,19 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
               </span>
             </div>
 
-            <div className="flex items-center gap-4 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Live clock */}
+              {liveTime && (
+                <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-(--color-bg-hover) border border-(--color-border) text-[10px] font-bold text-(--color-text-muted) uppercase tracking-wider">
+                  <span className="relative flex size-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                    <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                  </span>
+                  {liveTime}
+                </div>
+              )}
+
+              {/* Dark mode toggle */}
               <div className="flex items-center gap-2">
                 <Sun size={14} className={isDark ? 'text-slate-400' : 'text-amber-500'} />
                 <Switch

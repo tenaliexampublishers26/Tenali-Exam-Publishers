@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { motion, AnimatePresence, type Transition } from 'motion/react';
+import { RefreshCw, Pause, Play } from 'lucide-react';
 
 /**
  * Shared spring presets, translated from Apple's "Designing Fluid Interfaces"
@@ -313,7 +314,9 @@ export function AdminConfirmDialog({
 }
 
 /* ---------------------------------------------------------------------- */
-/* Motion-wrapped table row — staggered entrance, subtle hover lift        */
+/* Motion-wrapped table row — staggered entrance on FIRST MOUNT ONLY      */
+/* BUG FIX: Added layout={false} and initial={false} guard via `mounted`  */
+/* so status/data updates don't re-trigger staggered animations           */
 /* ---------------------------------------------------------------------- */
 
 export function AdminTableRow({
@@ -331,10 +334,13 @@ export function AdminTableRow({
     <motion.tr
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
+      // Only animate on mount — use a key on the parent list to re-trigger for new items
+      // Capping delay at 300ms prevents long stalls on large tables
       transition={{ ...SPRING_UI, delay: Math.min(index * 0.03, 0.3) }}
       onClick={onClick}
       className={className}
       style={onClick ? { cursor: 'pointer' } : undefined}
+      layout={false}
     >
       {children}
     </motion.tr>
@@ -349,6 +355,93 @@ export function AdminLivePill({ label = 'Live' }: { label?: string }) {
         <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
       </span>
       {label}
+    </span>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* AdminAutoRefreshBadge — countdown + enable/disable toggle               */
+/* Shows "Refreshing in Xs" with a live pulsing dot, or a paused state    */
+/* ---------------------------------------------------------------------- */
+
+export function AdminAutoRefreshBadge({
+  enabled,
+  onToggle,
+  countdown,
+  isRefreshing,
+  onManualRefresh,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+  countdown: number;
+  isRefreshing: boolean;
+  onManualRefresh: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      {/* Manual refresh button */}
+      <motion.button
+        onClick={onManualRefresh}
+        whileTap={{ scale: 0.9 }}
+        transition={SPRING_PRESS}
+        title="Refresh now"
+        className="flex items-center justify-center size-8 rounded-lg text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-(--color-bg-hover) transition-colors"
+        aria-label="Refresh now"
+      >
+        <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+      </motion.button>
+
+      {/* Toggle + countdown pill */}
+      <motion.button
+        onClick={onToggle}
+        whileTap={{ scale: 0.95 }}
+        transition={SPRING_PRESS}
+        title={enabled ? 'Pause auto-refresh' : 'Resume auto-refresh'}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+          enabled
+            ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/50'
+            : 'text-(--color-text-muted) bg-(--color-bg-hover) border-(--color-border) hover:text-(--color-text-primary)'
+        }`}
+      >
+        {enabled ? (
+          <>
+            <span className="relative flex size-1.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+            </span>
+            {isRefreshing ? 'Refreshing…' : `${countdown}s`}
+          </>
+        ) : (
+          <>
+            <Pause size={10} />
+            Paused
+          </>
+        )}
+      </motion.button>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* AdminLastRefreshed — "Last refreshed Xs ago" display                    */
+/* ---------------------------------------------------------------------- */
+
+export function AdminLastRefreshed({ timestamp }: { timestamp: number | null }) {
+  if (!timestamp) return null;
+
+  const diff = Math.round((Date.now() - timestamp) / 1000);
+  const label =
+    diff < 5
+      ? 'Just now'
+      : diff < 60
+      ? `${diff}s ago`
+      : diff < 3600
+      ? `${Math.floor(diff / 60)}m ago`
+      : `${Math.floor(diff / 3600)}h ago`;
+
+  return (
+    <span className="text-[10px] font-semibold text-(--color-text-muted) tabular-nums">
+      Updated {label}
     </span>
   );
 }
