@@ -2,12 +2,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatPrice } from '@/lib/utils';
-import { ShoppingCart, Package, RefreshCw, Copy, Check, Search, Calendar as CalendarIcon, Eye, X, Filter, Download, Printer, Truck } from 'lucide-react';
+import { ShoppingCart, Package, RefreshCw, Copy, Check, Search, Calendar as CalendarIcon, Eye, X, Filter, Download, Printer, Truck, Loader2 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import PostalSlipCard from '@/components/admin/PostalSlipCard';
 import { AdminTableRow, AdminModal, SPRING_UI, SPRING_PRESS, AdminAutoRefreshBadge, AdminLastRefreshed } from '@/components/admin/AdminUI';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { fetchWithCache, getCachedData, invalidateCache } from '@/lib/api-cache';
+import { print3UpPostalSlips, download3UpPostalSlipsPDF } from '@/utils/postalSlip';
 
 function parseDeliveryAddress(raw: any) {
   if (!raw) return null;
@@ -65,6 +66,9 @@ export default function AdminOrdersPage() {
   }, [ordersRaw]);
 
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [isBulkPrinting, setIsBulkPrinting] = useState(false);
+  const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -76,6 +80,8 @@ export default function AdminOrdersPage() {
   const [savingTracking, setSavingTracking] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const downloadRef = useRef<HTMLDivElement>(null);
+  const printMenuRef = useRef<HTMLDivElement>(null);
+  const masterCheckboxRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   const fetchOrders = async (force = false) => {
@@ -100,6 +106,9 @@ export default function AdminOrdersPage() {
       }
       if (downloadRef.current && !downloadRef.current.contains(event.target as Node)) {
         setIsDownloadOpen(false);
+      }
+      if (printMenuRef.current && !printMenuRef.current.contains(event.target as Node)) {
+        setIsPrintMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -361,6 +370,78 @@ export default function AdminOrdersPage() {
     return true;
   });
 
+  const allFilteredSelected = filteredOrders.length > 0 && filteredOrders.every((o) => selectedOrderIds.has(o.id));
+  const someFilteredSelected = filteredOrders.some((o) => selectedOrderIds.has(o.id));
+
+  useEffect(() => {
+    if (masterCheckboxRef.current) {
+      masterCheckboxRef.current.indeterminate = !allFilteredSelected && someFilteredSelected;
+    }
+  }, [allFilteredSelected, someFilteredSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (filteredOrders.length === 0) return;
+    const next = new Set(selectedOrderIds);
+    if (allFilteredSelected) {
+      filteredOrders.forEach((o) => next.delete(o.id));
+    } else {
+      filteredOrders.forEach((o) => next.add(o.id));
+    }
+    setSelectedOrderIds(next);
+  };
+
+  const handleToggleOrderSelect = (orderId: string) => {
+    const next = new Set(selectedOrderIds);
+    if (next.has(orderId)) {
+      next.delete(orderId);
+    } else {
+      next.add(orderId);
+    }
+    setSelectedOrderIds(next);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedOrderIds(new Set());
+  };
+
+  const handlePrintSelected = () => {
+    if (selectedOrderIds.size === 0) {
+      toast.error('Please select at least one order to print.');
+      return;
+    }
+    const selected = orders.filter((o) => selectedOrderIds.has(o.id));
+    if (selected.length === 0) {
+      toast.error('Please select at least one order to print.');
+      return;
+    }
+    setIsPrintMenuOpen(false);
+    print3UpPostalSlips(selected);
+    toast.success(`Prepared A4 3-Up print layout for ${selected.length} order${selected.length > 1 ? 's' : ''}`);
+  };
+
+  const handleDownloadSelectedPDF = async () => {
+    if (selectedOrderIds.size === 0) {
+      toast.error('Please select at least one order to print.');
+      return;
+    }
+    const selected = orders.filter((o) => selectedOrderIds.has(o.id));
+    if (selected.length === 0) {
+      toast.error('Please select at least one order to print.');
+      return;
+    }
+    setIsPrintMenuOpen(false);
+    setIsBulkPrinting(true);
+    try {
+      await download3UpPostalSlipsPDF(selected);
+      toast.success(`Downloaded A4 3-Up PDF for ${selected.length} order${selected.length > 1 ? 's' : ''}`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setIsBulkPrinting(false);
+    }
+  };
+
   const getStatusCount = (status: string) => {
     if (status === 'all') return orders.length;
     return orders.filter(o => o.status === status).length;
@@ -539,8 +620,93 @@ export default function AdminOrdersPage() {
             <AdminLastRefreshed timestamp={lastRefreshed} />
           </div>
 
+          {/* Print Selected Postal Slips Button & Dropdown */}
+          <div className="relative" ref={printMenuRef}>
+            <div className="inline-flex rounded-xl shadow-xs">
+              <button 
+                type="button"
+                onClick={handlePrintSelected}
+                disabled={isBulkPrinting}
+                className={`btn flex items-center gap-2 font-bold transition-all ${
+                  selectedOrderIds.size > 0
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-(--color-border)'
+                }`}
+                style={{ 
+                  padding: '8px 14px', 
+                  borderTopLeftRadius: '12px', 
+                  borderBottomLeftRadius: '12px',
+                  borderTopRightRadius: selectedOrderIds.size > 0 ? '0' : '12px',
+                  borderBottomRightRadius: selectedOrderIds.size > 0 ? '0' : '12px',
+                  fontSize: '0.85rem' 
+                }}
+                title={selectedOrderIds.size === 0 ? "Select orders using checkboxes to print" : `Print ${selectedOrderIds.size} selected postal slips (A4 3-Up)`}
+              >
+                {isBulkPrinting ? <Loader2 size={16} className="animate-spin" /> : <Printer size={16} />}
+                <span>Print Selected Addresses</span>
+                {selectedOrderIds.size > 0 && (
+                  <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full font-mono font-bold">
+                    {selectedOrderIds.size}
+                  </span>
+                )}
+              </button>
+
+              {selectedOrderIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsPrintMenuOpen(!isPrintMenuOpen)}
+                  className="px-2.5 bg-blue-700 hover:bg-blue-800 text-white border-l border-blue-500 flex items-center justify-center transition-colors cursor-pointer"
+                  style={{
+                    borderTopRightRadius: '12px',
+                    borderBottomRightRadius: '12px',
+                  }}
+                  title="Print & Download Options"
+                >
+                  <span className="text-[10px]">▼</span>
+                </button>
+              )}
+            </div>
+
+            {isPrintMenuOpen && selectedOrderIds.size > 0 && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-[#1a1b1e] rounded-xl shadow-xl border border-(--color-border) z-50 overflow-hidden">
+                <div className="p-2.5 border-b border-(--color-border) bg-(--color-bg-hover) flex items-center justify-between">
+                  <span className="text-xs font-bold text-(--color-text-muted) uppercase tracking-wider">
+                    A4 (3 Slips / Page)
+                  </span>
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                    {Math.ceil(selectedOrderIds.size / 3)} A4 sheet{Math.ceil(selectedOrderIds.size / 3) > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="flex flex-col py-1">
+                  <button
+                    type="button"
+                    onClick={handlePrintSelected}
+                    className="text-left px-4 py-2.5 text-sm hover:bg-(--color-bg-hover) flex items-center gap-2.5 transition-colors text-(--color-text-primary) font-semibold"
+                  >
+                    <Printer size={16} className="text-blue-500 shrink-0" />
+                    <div>
+                      <div>Print Selected (3-Up A4)</div>
+                      <div className="text-[11px] font-normal text-(--color-text-muted)">Ready for physical A4 printing</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadSelectedPDF}
+                    className="text-left px-4 py-2.5 text-sm hover:bg-(--color-bg-hover) flex items-center gap-2.5 transition-colors text-(--color-text-primary) font-semibold"
+                  >
+                    <Download size={16} className="text-emerald-500 shrink-0" />
+                    <div>
+                      <div>Download A4 3-Up PDF</div>
+                      <div className="text-[11px] font-normal text-(--color-text-muted)">Save as vector PDF file</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Download CSV Dropdown */}
-          <div className="relative ml-auto" ref={downloadRef}>
+          <div className="relative" ref={downloadRef}>
             <button 
               onClick={() => setIsDownloadOpen(!isDownloadOpen)}
               className="btn flex items-center gap-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/30"
@@ -648,6 +814,56 @@ export default function AdminOrdersPage() {
         })}
       </div>
 
+      {/* Active Selection Banner for Multi-Address Printing */}
+      {selectedOrderIds.size > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 rounded-xl shadow-xs text-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold font-mono text-xs">
+              {selectedOrderIds.size}
+            </div>
+            <div>
+              <div className="font-bold text-(--color-text-primary)">
+                {selectedOrderIds.size} order{selectedOrderIds.size > 1 ? 's' : ''} selected for Postal Printing
+              </div>
+              <div className="text-xs text-(--color-text-muted)">
+                3 slips per A4 page • Total: {Math.ceil(selectedOrderIds.size / 3)} A4 page{Math.ceil(selectedOrderIds.size / 3) > 1 ? 's' : ''}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrintSelected}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
+            >
+              <Printer size={14} /> Print Selected Addresses
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadSelectedPDF}
+              disabled={isBulkPrinting}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              {isBulkPrinting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Download A4 PDF
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="px-2.5 py-1.5 text-xs font-semibold text-(--color-text-muted) hover:text-(--color-text-primary) hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+            >
+              Clear Selection
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Table Card */}
       <div className="admin-card">
         {orders.length === 0 ? (
@@ -677,6 +893,16 @@ export default function AdminOrdersPage() {
                 <table className="admin-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '44px', textAlign: 'center' }}>
+                        <input
+                          ref={masterCheckboxRef}
+                          type="checkbox"
+                          checked={allFilteredSelected}
+                          onChange={handleToggleSelectAll}
+                          title={allFilteredSelected ? 'Deselect All' : 'Select All'}
+                          className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer align-middle"
+                        />
+                      </th>
                       <th>Order ID</th>
                       <th>Date</th>
                       <th>Customer</th>
@@ -691,6 +917,15 @@ export default function AdminOrdersPage() {
                   <tbody>
                     {filteredOrders.map((order, index) => (
                       <AdminTableRow key={order.id} index={index}>
+                        <td style={{ textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedOrderIds.has(order.id)}
+                            onChange={() => handleToggleOrderSelect(order.id)}
+                            aria-label={`Select order ${order.orderNumber}`}
+                            className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer align-middle"
+                          />
+                        </td>
                         <td className="col-primary">
                           {order.orderNumber}
                           {order.trackingNumber ? (

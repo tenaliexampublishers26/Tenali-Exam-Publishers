@@ -6,6 +6,42 @@ export interface PostalSlipData {
   deliveryAddress: any;
 }
 
+export interface PostalOrderSlipData {
+  id?: string;
+  orderNumber: string;
+  deliveryAddress: any;
+  items?: Array<{
+    productName?: string;
+    quantity?: number;
+    language?: string;
+  }>;
+  trackingNumber?: string | null;
+}
+
+export function formatItemSummary(items?: any[]): string {
+  if (!items || items.length === 0) return 'POSTAL PARCEL';
+  return items
+    .map((item) => {
+      let name = (item.productName || 'BOOK').trim();
+      name = name.replace(/\s*\/\s*/g, '/').replace(/\s*\+\s*/g, '+');
+      const qty = item.quantity || 1;
+      let lang = (item.language || '').toUpperCase();
+      if (lang === 'TE' || lang === 'TELUGU') lang = 'TE';
+      else if (lang === 'EN' || lang === 'ENGLISH' || lang === 'EM') lang = 'EM';
+      const langStr = lang ? ` (${lang})` : '';
+      return `${name} * ${qty}${langStr}`;
+    })
+    .join(', ');
+}
+
+export function formatTrackingNumber(trackingNumber?: string | null): { text: string; hasTracking: boolean } {
+  const clean = (trackingNumber || '').trim();
+  if (clean) {
+    return { text: clean, hasTracking: true };
+  }
+  return { text: 'NO TRACKING ID', hasTracking: false };
+}
+
 export function normalizePostalAddress(raw: any) {
   let addr = raw;
   while (typeof addr === 'string') {
@@ -440,3 +476,460 @@ export function printPostalSlipWindow(data: PostalSlipData) {
   `);
   printWindow.document.close();
 }
+
+/**
+ * Arranges multiple orders into 3-up A4 Portrait pages and opens print preview
+ */
+export function print3UpPostalSlips(orders: PostalOrderSlipData[]) {
+  if (!orders || orders.length === 0) return;
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  // Group orders into chunks of 3 for each A4 page
+  const pages: PostalOrderSlipData[][] = [];
+  for (let i = 0; i < orders.length; i += 3) {
+    pages.push(orders.slice(i, i + 3));
+  }
+
+  const pagesHtml = pages
+    .map((pageOrders) => {
+      const slipsHtml = pageOrders
+        .map((order) => {
+          const addr = normalizePostalAddress(order.deliveryAddress);
+          const itemSummary = formatItemSummary(order.items);
+          const { text: trackingText, hasTracking } = formatTrackingNumber(order.trackingNumber);
+          const addrLine1 = [addr.houseOrFlat, addr.street].filter(Boolean).join(', ');
+          const addrLine2 = addr.area || '';
+          const cityState = [addr.city, addr.state].filter(Boolean).join(', ');
+
+          return `
+            <div class="postal-slip">
+              <div class="header">
+                <div>
+                  <div class="brand-title">INDIA POST PARCEL (CONTRACTUAL)</div>
+                  <div class="contract-info">CONTRACT NO. 41120154 - TENALI EXAMS PUBLISHERS</div>
+                  <div class="customer-id">CUSTOMER ID: ${order.orderNumber}</div>
+                </div>
+                <div class="stamp-box">
+                  <div class="stamp-title">POSTAGE PREPAID</div>
+                  <div class="stamp-sub">CONTRACT PARCEL</div>
+                  <div class="stamp-bnpl">INDIA POST BNPL</div>
+                </div>
+              </div>
+
+              <div class="middle-body">
+                <div class="left-col">
+                  <div class="pin-box">
+                    <div class="pin-title">DESTINATION PIN</div>
+                    <div class="pin-number">${addr.pinCode || '------'}</div>
+                  </div>
+                  <div class="item-tracking-box">
+                    <div class="item-summary">${itemSummary}</div>
+                    <div class="tracking-num ${hasTracking ? '' : 'no-tracking'}">${trackingText}</div>
+                  </div>
+                </div>
+
+                <div class="to-box">
+                  <div class="to-header">TO:</div>
+                  <div class="to-name">${(addr.fullName || 'CUSTOMER').toUpperCase()}</div>
+                  <div class="address-lines">
+                    <div>${addrLine1}</div>
+                    ${addrLine2 ? `<div>${addrLine2}</div>` : ''}
+                    <div>${cityState}</div>
+                    <div class="phone-line">CELL: ${addr.mobile || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="from-footer">
+                <div>
+                  <div class="from-title">FROM (SENDER / RETURN IF UNDELIVERED):</div>
+                  <div class="from-name">TENALI EXAMS PUBLISHERS</div>
+                  <div class="from-address">D.NO. 19-308, NAMBURU - 522508, GUNTUR DIST, ANDHRA PRADESH</div>
+                  <div class="from-cell">CELL: +91 7396977544</div>
+                </div>
+                <div>
+                  <div class="origin-pin">ORIGIN PIN: 522508</div>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      return `<div class="a4-page">${slipsHtml}</div>`;
+    })
+    .join('');
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Postal Slips - A4 3-Up (${orders.length} Slips)</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 6mm 7mm;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #000000;
+            background: #ffffff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .a4-page {
+            width: 196mm;
+            height: 284mm;
+            page-break-after: always;
+            break-after: page;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 4.5mm;
+            margin: 0 auto;
+          }
+          .a4-page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          .postal-slip {
+            width: 100%;
+            height: 90mm;
+            border: 2px solid #000000;
+            padding: 3mm 4mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            background: #ffffff;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 2mm;
+          }
+          .brand-title {
+            font-size: 11pt;
+            font-weight: 900;
+            letter-spacing: 0.2px;
+          }
+          .contract-info {
+            font-size: 7.5pt;
+            font-weight: 700;
+            margin-top: 1.5px;
+          }
+          .customer-id {
+            font-size: 8.5pt;
+            font-weight: 800;
+            margin-top: 1px;
+          }
+          .stamp-box {
+            border: 1.5px solid #000000;
+            padding: 2px 8px;
+            text-align: center;
+            min-width: 40mm;
+          }
+          .stamp-title {
+            font-size: 7.5pt;
+            font-weight: 900;
+            line-height: 1.25;
+          }
+          .stamp-sub {
+            font-size: 7.5pt;
+            font-weight: 900;
+            line-height: 1.25;
+          }
+          .stamp-bnpl {
+            font-size: 7.5pt;
+            font-weight: 900;
+            line-height: 1.25;
+          }
+          .middle-body {
+            display: flex;
+            gap: 4mm;
+            align-items: stretch;
+            margin: 2mm 0;
+            flex: 1;
+          }
+          .left-col {
+            width: 46mm;
+            display: flex;
+            flex-direction: column;
+            gap: 2mm;
+          }
+          .pin-box {
+            border: 2px solid #000000;
+            text-align: center;
+            padding: 1.5mm 2mm;
+          }
+          .pin-title {
+            font-size: 7.5pt;
+            font-weight: 900;
+          }
+          .pin-number {
+            font-size: 19pt;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            line-height: 1.1;
+            border-top: 1.5px solid #000000;
+            margin-top: 1.5px;
+            padding-top: 1px;
+          }
+          .item-tracking-box {
+            border: 2px solid #000000;
+            padding: 2mm;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1.5mm;
+          }
+          .item-summary {
+            font-size: 8pt;
+            font-weight: 800;
+            line-height: 1.25;
+          }
+          .tracking-num {
+            font-size: 8.5pt;
+            font-weight: 900;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+          }
+          .tracking-num.no-tracking {
+            font-size: 7.5pt;
+            color: #444444;
+            font-style: italic;
+          }
+          .to-box {
+            flex: 1;
+            border: 2px solid #000000;
+            padding: 2.5mm 4mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+          }
+          .to-header {
+            font-size: 8.5pt;
+            font-weight: 900;
+          }
+          .to-name {
+            font-size: 11pt;
+            font-weight: 900;
+            margin-top: 0.5mm;
+            line-height: 1.2;
+          }
+          .address-lines {
+            font-size: 8.5pt;
+            font-weight: 600;
+            margin-top: 1mm;
+            line-height: 1.35;
+          }
+          .phone-line {
+            font-weight: 800;
+            margin-top: 1.5mm;
+            font-size: 9pt;
+          }
+          .from-footer {
+            border-top: 2px solid #000000;
+            padding-top: 1.5mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .from-title {
+            font-size: 7pt;
+            font-weight: 800;
+            color: #333333;
+          }
+          .from-name {
+            font-size: 8.5pt;
+            font-weight: 900;
+          }
+          .from-address {
+            font-size: 7.5pt;
+            font-weight: 600;
+          }
+          .from-cell {
+            font-size: 8pt;
+            font-weight: 800;
+          }
+          .origin-pin {
+            border: 1.5px solid #000000;
+            padding: 1.5px 6px;
+            font-size: 7.5pt;
+            font-weight: 900;
+            white-space: nowrap;
+          }
+          @media screen {
+            body {
+              background: #f1f5f9;
+              padding: 20px;
+            }
+            .a4-page {
+              background: #ffffff;
+              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+              margin-bottom: 20px;
+              padding: 6mm 7mm;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${pagesHtml}
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+/**
+ * Generates and downloads an A4 Portrait PDF containing 3 postal slips per page
+ */
+export async function download3UpPostalSlipsPDF(orders: PostalOrderSlipData[]) {
+  if (!orders || orders.length === 0) return;
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  orders.forEach((order, index) => {
+    const slot = index % 3;
+    if (index > 0 && slot === 0) {
+      pdf.addPage('a4', 'portrait');
+    }
+
+    const addr = normalizePostalAddress(order.deliveryAddress);
+    const itemSummary = formatItemSummary(order.items);
+    const { text: trackingText } = formatTrackingNumber(order.trackingNumber);
+    const addrLine1 = [addr.houseOrFlat, addr.street].filter(Boolean).join(', ');
+    const addrLine2 = addr.area || '';
+    const cityState = [addr.city, addr.state].filter(Boolean).join(', ');
+
+    // Vertical position for this slip:
+    // Page height is 297mm.
+    // 3 slips at 88mm each with 5.5mm gaps, starting at y = 7mm.
+    // Slot 0: y = 7
+    // Slot 1: y = 7 + 88 + 5.5 = 100.5
+    // Slot 2: y = 100.5 + 88 + 5.5 = 194
+    // Bottom of Slot 2: 194 + 88 = 282mm (leaves 15mm margin)
+    const y = 7 + slot * 93.5;
+
+    // Slip outer box: width 194mm (from x = 8 to 202)
+    pdf.setDrawColor(0, 0, 0);
+    pdf.setLineWidth(0.4);
+    pdf.rect(8, y, 194, 88);
+
+    // Header dividing line
+    pdf.setLineWidth(0.35);
+    pdf.line(8, y + 17, 202, y + 17);
+
+    // Header Content
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10.5);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('INDIA POST PARCEL (CONTRACTUAL)', 11, y + 5.5);
+
+    pdf.setFontSize(7.5);
+    pdf.text('CONTRACT NO. 41120154 - TENALI EXAMS PUBLISHERS', 11, y + 10);
+
+    pdf.setFontSize(8.5);
+    pdf.text(`CUSTOMER ID: ${order.orderNumber}`, 11, y + 14.5);
+
+    // Postage Prepaid Stamp Box
+    pdf.setLineWidth(0.35);
+    pdf.rect(160, y + 3, 39, 12);
+    pdf.setFontSize(7.5);
+    pdf.text('POSTAGE PREPAID', 179.5, y + 6.2, { align: 'center' });
+    pdf.text('CONTRACT PARCEL', 179.5, y + 9.5, { align: 'center' });
+    pdf.text('INDIA POST BNPL', 179.5, y + 12.8, { align: 'center' });
+
+    // Middle Left: Destination PIN Code Box
+    pdf.rect(11, y + 20, 42, 17);
+    pdf.setFontSize(7.5);
+    pdf.text('DESTINATION PIN', 32, y + 24, { align: 'center' });
+    pdf.line(11, y + 25.5, 53, y + 25.5);
+
+    pdf.setFontSize(16);
+    pdf.text(addr.pinCode || '------', 32, y + 34, { align: 'center' });
+
+    // Middle Left: Item & Tracking ID Box
+    pdf.rect(11, y + 39, 42, 26);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(7.5);
+    const itemLines = pdf.splitTextToSize(itemSummary, 38);
+    pdf.text(itemLines, 13, y + 44);
+
+    pdf.setFont('courier', 'bold');
+    pdf.setFontSize(8);
+    pdf.text(trackingText, 13, y + 61);
+
+    // Middle Right: Consignee TO: Box
+    pdf.rect(56, y + 20, 143, 45);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.text('TO:', 59, y + 24.5);
+
+    pdf.setFontSize(10);
+    pdf.text((addr.fullName || 'CUSTOMER').toUpperCase(), 59, y + 29.5);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    let toY = y + 34.5;
+    if (addrLine1) {
+      pdf.text(addrLine1, 59, toY);
+      toY += 4;
+    }
+    if (addrLine2) {
+      pdf.text(addrLine2, 59, toY);
+      toY += 4;
+    }
+    pdf.text(cityState, 59, toY);
+    toY += 4.5;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`CELL: ${addr.mobile || 'N/A'}`, 59, toY);
+
+    // Footer dividing line
+    pdf.line(8, y + 68, 202, y + 68);
+
+    // Footer: FROM Details
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(7);
+    pdf.text('FROM (SENDER / RETURN IF UNDELIVERED):', 11, y + 72);
+
+    pdf.setFontSize(8.5);
+    pdf.text('TENALI EXAMS PUBLISHERS', 11, y + 76);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.text('D.NO. 19-308, NAMBURU - 522508, GUNTUR DIST, ANDHRA PRADESH', 11, y + 80);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.text('CELL: +91 7396977544', 11, y + 84);
+
+    // Origin PIN Box
+    pdf.rect(167, y + 78, 32, 6.5);
+    pdf.setFontSize(7.5);
+    pdf.text('ORIGIN PIN: 522508', 183, y + 82.5, { align: 'center' });
+  });
+
+  pdf.save(`postal_slip_3up_A4_${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
